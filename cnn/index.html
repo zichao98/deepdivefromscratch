@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CNN — Matrix Operations Deep Dive | Deep Dive From Scratch</title>
+  <meta name="description" content="Interactive step-by-step visualizer of Convolutional Neural Network matrix operations: convolution, ReLU, max pooling, flatten, and fully-connected layer — all computed live in your browser." />
+  <meta name="keywords" content="CNN, convolutional neural network, matrix operations, machine learning, deep learning, step by step, visualizer" />
+  <link rel="canonical" href="https://yourdomain.com/cnn/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "CNN — Matrix Operations Deep Dive",
+    "description": "Interactive step-by-step visualizer of CNN matrix operations",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        tags: 'none',
+        packages: { '[+]': ['ams'] }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+
+<div class="back-nav">
+  <a href="../" class="back-link">← Deep Dive From Scratch</a>
+</div>
+
+<header>
+  <h1>🧠 CNN — Matrix Operations Deep Dive</h1>
+  <p class="subtitle">Understand every matrix operation inside a Convolutional Neural Network — step by step</p>
+</header>
+
+<nav class="pipeline">
+  <button class="step-btn active" data-step="0">1. Input</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="1">2. Convolution</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="2">3. ReLU</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="3">4. Max Pool</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="4">5. Flatten</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="5">6. FC Layer</button>
+</nav>
+
+<!-- ═══════════════ STEP 0: INPUT ═══════════════ -->
+<section class="step-panel active" id="step-0">
+  <h2>Step 1 — Input Image \(\mathbf{X}\) <span class="badge">5×5 grid</span></h2>
+  <p class="desc">Click any cell to toggle its value (0 or 1). This is your raw pixel input matrix \(\mathbf{X}\).</p>
+  <div class="layout-row">
+    <div>
+      <h3 class="mat-label">Input \(\mathbf{X}\)</h3>
+      <div id="input-grid" class="grid"></div>
+      <div class="controls">
+        <button id="btn-clear">Clear</button>
+        <button id="btn-random">Random</button>
+        <button id="btn-preset-edge">Edge Pattern</button>
+        <button id="btn-preset-cross">Cross Pattern</button>
+      </div>
+    </div>
+    <div class="explanation-box">
+      <h3>What is this?</h3>
+      <p>A CNN starts with an <strong>input tensor</strong> — in this demo a single 5×5 grayscale image.</p>
+      <p>Each cell holds a pixel value. Real images use 0–255; here we use 0 or 1 for clarity.</p>
+      <div class="formula-box">
+        <strong>Matrix notation:</strong>
+        \[ \mathbf{X} \in \mathbb{R}^{H \times W} \]
+        \( H = 5,\; W = 5 \) — height and width of the input image.
+      </div>
+      <p>👉 Edit the grid then press <em>Next Step</em> to see convolution applied.</p>
+    </div>
+  </div>
+  <div class="matrix-display">
+    <h3>X (raw values)</h3>
+    <div id="input-matrix-display" class="number-matrix"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 1: CONVOLUTION ═══════════════ -->
+<section class="step-panel" id="step-1">
+  <h2>Step 2 — Convolution <span class="badge">Feature Map</span></h2>
+  <p class="desc">A learnable kernel \(\mathbf{K}\) slides over \(\mathbf{X}\). At each position: element-wise multiply, then sum → one output value.</p>
+  <div class="layout-row">
+    <div>
+      <h3 class="mat-label">Input \(\mathbf{X}\)</h3>
+      <div id="conv-input-grid" class="grid small"></div>
+    </div>
+    <div class="operator">✦</div>
+    <div>
+      <h3 class="mat-label">Kernel \(\mathbf{K}\) \((3{\times}3)\)</h3>
+      <div id="kernel-grid" class="grid editable-kernel"></div>
+      <div class="controls">
+        <button id="btn-kernel-edge-h">Horizontal Edge</button>
+        <button id="btn-kernel-edge-v">Vertical Edge</button>
+        <button id="btn-kernel-sharpen">Sharpen</button>
+        <button id="btn-kernel-blur">Blur</button>
+      </div>
+    </div>
+    <div class="operator">=</div>
+    <div>
+      <h3 class="mat-label">Feature Map \(\mathbf{Z}\)</h3>
+      <div id="conv-output-grid" class="grid"></div>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>How convolution works — the math</h3>
+    <div class="formula-box">
+      \[ Z_{i,j} = \sum_{m}\sum_{n} X_{i+m,\,j+n} \cdot K_{m,n} \]
+      \[ \text{Output size} = (H - k + 1)\times(W - k + 1) \]
+      \[ = (5-3+1)\times(5-3+1) = \mathbf{3\times 3} \]
+      <p class="formula-note">\(H, W\): input height/width; \(k\): kernel size (here \(k=3\)); \(m, n\): kernel indices.</p>
+    </div>
+    <p>Hover or click an output cell to see the step-by-step calculation for that position.</p>
+  </div>
+  <div id="conv-detail" class="conv-detail-box hidden">
+    <h3>Calculation at position \((i,j)=\) <span id="conv-pos"></span></h3>
+    <div id="conv-detail-content"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 2: RELU ═══════════════ -->
+<section class="step-panel" id="step-2">
+  <h2>Step 3 — ReLU Activation <span class="badge">Non-linearity</span></h2>
+  <p class="desc">Apply \(\text{ReLU}(x) = \max(0,\, x)\) element-wise. Negative values become 0.</p>
+  <div class="layout-row">
+    <div>
+      <h3 class="mat-label">Before ReLU \((\mathbf{Z})\)</h3>
+      <div id="relu-input-grid" class="grid small"></div>
+    </div>
+    <div class="operator">→ ReLU →</div>
+    <div>
+      <h3 class="mat-label">After ReLU \((\mathbf{A})\)</h3>
+      <div id="relu-output-grid" class="grid small"></div>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>Why ReLU?</h3>
+    <div class="formula-box">
+      \[ A_{i,j} = \text{ReLU}(Z_{i,j}) = \max(0,\, Z_{i,j}) \]
+    </div>
+    <p>Without non-linearity, stacking linear layers is still linear. ReLU introduces <strong>non-linearity</strong> so the network can learn complex patterns.</p>
+    <p>Cells highlighted in <span style="color:#e74c3c;font-weight:bold">red</span> had \(Z_{i,j} < 0\) (zeroed out). Cells in <span style="color:#27ae60;font-weight:bold">green</span> had \(Z_{i,j} \geq 0\) and passed through unchanged.</p>
+  </div>
+  <div class="layout-row" style="margin-top:1.5rem">
+    <div class="matrix-side">
+      <h3>\(\mathbf{Z}\) values</h3>
+      <div id="relu-z-matrix" class="number-matrix small"></div>
+    </div>
+    <div class="matrix-side">
+      <h3>\(\mathbf{A} = \text{ReLU}(\mathbf{Z})\)</h3>
+      <div id="relu-a-matrix" class="number-matrix small"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 3: MAX POOLING ═══════════════ -->
+<section class="step-panel" id="step-3">
+  <h2>Step 4 — Max Pooling <span class="badge">Spatial Reduction</span></h2>
+  <p class="desc">Slide a \(2{\times}2\) window (stride 1) and take the <strong>maximum</strong> value in each region.</p>
+  <div class="layout-row">
+    <div>
+      <h3 class="mat-label">After ReLU \((\mathbf{A})\) — \(3{\times}3\)</h3>
+      <div id="pool-input-grid" class="grid small"></div>
+    </div>
+    <div class="operator">→ MaxPool →</div>
+    <div>
+      <h3 class="mat-label">Pooled Output \(\mathbf{P}\)</h3>
+      <div id="pool-output-grid" class="grid small"></div>
+      <p class="note">\(3{\times}3\) input, \(2{\times}2\) pool, stride 1 → \(2{\times}2\) output.</p>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>What pooling does — the math</h3>
+    <div class="formula-box">
+      \[ P_{i,j} = \max_{0 \le m,n < k}\, A_{i{\cdot}s+m,\; j{\cdot}s+n} \]
+      \[ \text{Output size} = \left\lfloor \frac{H - k}{s} \right\rfloor + 1 \]
+      <p class="formula-note">\(k\): pooling window size (here \(k=2\)); \(s\): stride (here \(s=1\)); \(m, n\): window indices.</p>
+    </div>
+    <p>Pooling <strong>reduces spatial dimensions</strong> (fewer parameters downstream) and provides <strong>translation invariance</strong> — small shifts in the input give the same output.</p>
+    <p>Hover an output cell to see which input cells were compared.</p>
+  </div>
+  <div id="pool-detail" class="conv-detail-box hidden">
+    <h3>Pool window at <span id="pool-pos"></span></h3>
+    <div id="pool-detail-content"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 4: FLATTEN ═══════════════ -->
+<section class="step-panel" id="step-4">
+  <h2>Step 5 — Flatten <span class="badge">\(2\text{D} \to 1\text{D}\)</span></h2>
+  <p class="desc">Reshape the 2D feature map \(\mathbf{P}\) into a 1D column vector \(\mathbf{v}\) — the input to the fully-connected layer.</p>
+  <div class="layout-row">
+    <div>
+      <h3 class="mat-label">Pooled \(\mathbf{P}\) (2D)</h3>
+      <div id="flatten-input-grid" class="grid small"></div>
+    </div>
+    <div class="operator">→ Flatten →</div>
+    <div>
+      <h3 class="mat-label">Vector \(\mathbf{v}\) (1D)</h3>
+      <div id="flatten-vector" class="vector-display"></div>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>Row-major flattening</h3>
+    <div class="formula-box">
+      \[ \mathbf{v} = \text{flatten}(\mathbf{P}) \]
+      \[ v_{i \cdot W + j} = P_{i,j} \]
+      \[ \mathbf{v} \in \mathbb{R}^{N}, \quad N = H \cdot W \]
+      <p class="formula-note">\(W\): number of columns in \( \mathbf{P} \); \(H\): number of rows; \(N\): total elements.</p>
+    </div>
+    <p>This is a <strong>reshape operation</strong> — no weights, no computation. It simply unrolls the matrix row by row into a vector so a dense layer can process it.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 5: FC LAYER ═══════════════ -->
+<section class="step-panel" id="step-5">
+  <h2>Step 6 — Fully Connected Layer <span class="badge">Matrix Multiply</span></h2>
+  <p class="desc">Multiply weight matrix \(\mathbf{W}\) by vector \(\mathbf{v}\), add bias \(\mathbf{b}\), apply softmax to get class probabilities.</p>
+  <div class="layout-row" style="align-items:flex-start">
+    <div>
+      <h3 class="mat-label">Weight Matrix \(\mathbf{W}\)</h3>
+      <div id="fc-weight-grid" class="number-matrix fc-weights"></div>
+      <p class="note">\(3\) output neurons \(\times\, N\) inputs</p>
+    </div>
+    <div class="operator">·</div>
+    <div>
+      <h3 class="mat-label">Vector \(\mathbf{v}\)</h3>
+      <div id="fc-vector-display" class="vector-display small"></div>
+    </div>
+    <div class="operator">+</div>
+    <div>
+      <h3 class="mat-label">Bias \(\mathbf{b}\)</h3>
+      <div id="fc-bias-display" class="vector-display small"></div>
+    </div>
+    <div class="operator">=</div>
+    <div>
+      <h3 class="mat-label">Logits \(\mathbf{z}\)</h3>
+      <div id="fc-logits-display" class="vector-display small"></div>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>Matrix multiplication — the math</h3>
+    <div class="formula-box">
+      \[ \mathbf{z} = \mathbf{W}\mathbf{v} + \mathbf{b} \]
+      \[ z_k = \sum_{j} W_{k,j}\, v_j + b_k \]
+      \[ \hat{y}_k = \text{softmax}(\mathbf{z})_k = \frac{e^{z_k}}{\displaystyle\sum_{j} e^{z_j}} \]
+      <p class="formula-note">\(\mathbf{W}\): weight matrix; \(\mathbf{v}\): flattened input; \(\mathbf{b}\): bias; \(k\): output class index.</p>
+    </div>
+  </div>
+  <div class="softmax-section">
+    <h3>Softmax Output <span class="badge">Class Probabilities</span></h3>
+    <div id="softmax-bars" class="bar-chart"></div>
+  </div>
+  <div id="fc-detail" class="conv-detail-box">
+    <h3>Row-by-row dot products</h3>
+    <div id="fc-detail-content"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ NAVIGATION ═══════════════ -->
+<div class="nav-controls">
+  <button id="btn-prev" disabled>← Previous</button>
+  <span id="step-indicator">Step 1 / 6</span>
+  <button id="btn-next">Next →</button>
+</div>
+
+<footer>
+  <p>CNN internals visualized step by step — all computations run live in your browser. No black boxes.</p>
+</footer>
+
+<script src="cnn.js"></script>
+</body>
+</html>
