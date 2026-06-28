@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ordinary Least Squares (OLS) Deep Dive | Deep Dive From Scratch</title>
+  <meta name="description" content="Interactive step-by-step visualizer of Ordinary Least Squares (OLS) linear regression — simple regression, loss surface, gradient descent, matrix notation, normal equations, and residual diagnostics." />
+  <meta name="keywords" content="OLS, Ordinary Least Squares, linear regression, matrix operations, machine learning, gradient descent, normal equation, step by step, visualizer" />
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/ols/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Ordinary Least Squares (OLS) Deep Dive",
+    "description": "Interactive step-by-step visualizer of Ordinary Least Squares linear regression",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/ols/",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="../theme.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        tags: 'none',
+        packages: { '[+]': ['ams'] }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="top-nav">
+  <a href="../" class="nav-brand">
+    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-text">Deep Dive From Scratch</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="../" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:0.3rem">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>Home
+      </a>
+      <a href="../#posts" class="hide-sm">Posts</a>
+      <a href="../about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+    <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<header>
+  <h1>Ordinary Least Squares (OLS) Deep Dive</h1>
+  <p class="subtitle">An interactive geometric, algebraic, and statistical journey into the heart of regression</p>
+</header>
+
+<nav class="pipeline">
+  <button class="step-btn active" data-step="0">1. Playground</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="1">2. Analytical</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="2">3. Loss Surface</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="3">4. Matrix Form</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="4">5. Normal Equation</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="5">6. Diagnostics</button>
+</nav>
+
+<!-- ═══════════════ STEP 0: PLAYGROUND ═══════════════ -->
+<section class="step-panel active" id="step-0">
+  <h2>Step 1 — Geometric Intuition & Data Playground</h2>
+  <p class="desc">Click inside the plot to add data points. Drag them to move, or double-click to delete. Adjust the sliders to fit your candidate line manually!</p>
+
+  <div class="layout-row flex-start">
+    <div class="visualizer-container">
+      <div class="svg-wrap">
+        <svg id="playground-svg" width="500" height="400">
+          <!-- Grid Lines and Axes are drawn via Javascript -->
+          <g id="grid-group"></g>
+          <!-- Lines -->
+          <line id="optimal-line" class="regression-line optimal" x1="0" y1="0" x2="0" y2="0" />
+          <line id="candidate-line" class="regression-line candidate" x1="0" y1="0" x2="0" y2="0" />
+          <!-- Residual lines -->
+          <g id="residual-group"></g>
+          <!-- Points -->
+          <g id="points-group"></g>
+        </svg>
+        <div class="svg-legend">
+          <span class="legend-item"><span class="legend-line candidate-dash"></span> Candidate Line \(y = mx + c\)</span>
+          <span class="legend-item"><span class="legend-line optimal-solid"></span> Best Fit OLS Line \(\hat{y} = \beta_1 x + \beta_0\)</span>
+        </div>
+      </div>
+
+      <div class="controls-card">
+        <h3>Adjust Candidate Line</h3>
+        <div class="slider-row">
+          <label for="slope-slider">Slope (\(m\)): <span id="slope-val" class="math-mono">1.00</span></label>
+          <input type="range" id="slope-slider" min="-3.00" max="3.00" step="0.01" value="1.00" />
+        </div>
+        <div class="slider-row">
+          <label for="intercept-slider">Intercept (\(c\)): <span id="intercept-val" class="math-mono">2.00</span></label>
+          <input type="range" id="intercept-slider" min="-3.00" max="13.00" step="0.05" value="2.00" />
+        </div>
+        <div class="controls">
+          <button id="btn-reset-points">Reset Points</button>
+          <button id="btn-clear-points">Clear All</button>
+          <button id="btn-preset-linear">Perfect Linear</button>
+          <button id="btn-preset-outlier">Add Outlier</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-sidebar">
+      <div class="explanation-box wide">
+        <h3>What is OLS?</h3>
+        <p>Ordinary Least Squares (OLS) is a method for estimating the unknown parameters in a linear regression model.</p>
+        <p>It minimizes the <strong>Sum of Squared Residuals (SSR)</strong>. A residual \(e_i\) is the vertical distance between the actual data point and the regression line.</p>
+        <div class="formula-box">
+          \[ e_i = y_i - \hat{y}_i \]
+          \[ \text{SSR} = \sum_{i=1}^n e_i^2 = \sum_{i=1}^n (y_i - (m x_i + c))^2 \]
+        </div>
+        <p>Squaring the residuals ensures positive and negative errors don't cancel out, and penalizes larger errors more heavily.</p>
+      </div>
+
+      <div class="metric-card">
+        <h3>Live Loss Comparison</h3>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <span class="bar-label">Candidate SSR</span>
+            <div class="bar-track"><div id="candidate-ssr-bar" class="bar-fill candidate" style="width: 50%"></div></div>
+            <span id="candidate-ssr-val" class="bar-pct">0.00</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Optimal SSR</span>
+            <div class="bar-track"><div id="optimal-ssr-bar" class="bar-fill optimal" style="width: 30%"></div></div>
+            <span id="optimal-ssr-val" class="bar-pct">0.00</span>
+          </div>
+        </div>
+        <p class="note">Can you adjust the sliders to make your Candidate SSR match the Optimal SSR?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 1: ANALYTICAL ═══════════════ -->
+<section class="step-panel" id="step-1">
+  <h2>Step 2 — Simple Linear Regression (Analytical Calculation)</h2>
+  <p class="desc">For 2D data, we can calculate the slope \(\beta_1\) and intercept \(\beta_0\) directly without iterative solvers. See the exact math computed live on your points.</p>
+
+  <div class="layout-row flex-start">
+    <div class="table-container">
+      <h3>Data Covariance Table</h3>
+      <div class="scrollable-table">
+        <table class="math-table" id="covariance-table">
+          <thead>
+            <tr>
+              <th>\(i\)</th>
+              <th>\(x_i\)</th>
+              <th>\(y_i\)</th>
+              <th>\(x_i - \bar{x}\)</th>
+              <th>\(y_i - \bar{y}\)</th>
+              <th>\((x_i - \bar{x})(y_i - \bar{y})\)</th>
+              <th>\((x_i - \bar{x})^2\)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated dynamically -->
+          </tbody>
+          <tfoot>
+            <!-- Sums and averages -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="explanation-box step-sidebar">
+      <h3>The Direct Formulas</h3>
+      <p>The OLS estimators are derived by taking partial derivatives of the SSR with respect to slope and intercept, setting them to 0, and solving:</p>
+      
+      <div class="formula-box">
+        <strong>Slope (\(\beta_1\)):</strong>
+        \[ \beta_1 = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sum (x_i - \bar{x})^2} = \frac{\text{Cov}(X,Y)}{\text{Var}(X)} \]
+        <div id="beta1-calc-sub" class="math-sub"></div>
+        \[ \beta_1 = \mathbf{\text{loading...}} \]
+      </div>
+
+      <div class="formula-box">
+        <strong>Intercept (\(\beta_0\)):</strong>
+        \[ \beta_0 = \bar{y} - \beta_1 \bar{x} \]
+        <div id="beta0-calc-sub" class="math-sub"></div>
+        \[ \beta_0 = \mathbf{\text{loading...}} \]
+      </div>
+
+      <p>👉 Move the points in Step 1 or change them, and watch every cell in this table and formula update live!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 2: LOSS SURFACE ═══════════════ -->
+<section class="step-panel" id="step-2">
+  <h2>Step 3 — The Loss Surface & Gradient Descent</h2>
+  <p class="desc">The Sum of Squared Residuals forms a convex quadratic bowl. Watch how Gradient Descent walks down this surface to reach the global minimum.</p>
+
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="loss-canvas" width="400" height="400"></canvas>
+        <div class="canvas-labels">
+          <span class="y-label">Slope (\(\beta_1\))</span>
+          <span class="x-label">Intercept (\(\beta_0\))</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="btn-run-gd" class="accent-btn">Run Gradient Descent</button>
+        <button id="btn-stop-gd" disabled>Pause</button>
+        <button id="btn-reset-gd">Reset Path</button>
+      </div>
+    </div>
+
+    <div class="explanation-box step-sidebar">
+      <h3>Visualizing Optimization</h3>
+      <p>The heatmap shows the loss value (SSR) for different combinations of intercept \(\beta_0\) (horizontal axis) and slope \(\beta_1\) (vertical axis).</p>
+      <p><span style="color:#00ffff; font-weight:bold">Blue</span> represents low loss, and <span style="color:#ff00ff; font-weight:bold">pink/red</span> represents high loss.</p>
+      
+      <div class="marker-legend">
+        <p>🟢 <strong>Green dot:</strong> Your manual candidate parameters \((c, m)\).</p>
+        <p>🎯 <strong>Target Crosshair:</strong> The optimal analytical OLS solution \((\beta_0^*, \beta_1^*)\).</p>
+        <p>🟠 <strong>Orange path:</strong> The step-by-step history of Gradient Descent.</p>
+      </div>
+
+      <div class="formula-box">
+        <strong>Gradient Descent Steps:</strong>
+        \[ \beta_j \leftarrow \beta_j - \alpha \frac{\partial L}{\partial \beta_j} \]
+        \[ \frac{\partial L}{\partial \beta_0} = -\frac{2}{n}\sum (y_i - \hat{y}_i) \]
+        \[ \frac{\partial L}{\partial \beta_1} = -\frac{2}{n}\sum (y_i - \hat{y}_i)x_i \]
+        <p class="formula-note">Learning rate \(\alpha = 0.015\)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 3: MATRIX FORM ═══════════════ -->
+<section class="step-panel" id="step-3">
+  <h2>Step 4 — Multiple Linear Regression: Matrix Formulation</h2>
+  <p class="desc">To scale linear regression to multiple dimensions, we express OLS in matrix notation. Click on any row in the matrices to highlight its corresponding point on the graph.</p>
+
+  <div class="layout-row flex-start">
+    <div class="matrices-container">
+      <h3>The Live Matrix Representation</h3>
+      
+      <div class="matrix-equation">
+        <!-- Vector y -->
+        <div class="matrix-wrap">
+          <span class="matrix-name">\(\mathbf{y}\)</span>
+          <div id="matrix-y" class="matrix bracket"></div>
+          <span class="matrix-dim">\(n \times 1\)</span>
+        </div>
+        
+        <div class="matrix-operator">=</div>
+        
+        <!-- Matrix X -->
+        <div class="matrix-wrap">
+          <span class="matrix-name">\(\mathbf{X}\)</span>
+          <div id="matrix-x" class="matrix bracket"></div>
+          <span class="matrix-dim">\(n \times 2\)</span>
+        </div>
+
+        <div class="matrix-operator">\(\cdot\)</div>
+
+        <!-- Vector Beta -->
+        <div class="matrix-wrap">
+          <span class="matrix-name">\(\boldsymbol{\beta}\)</span>
+          <div id="matrix-beta" class="matrix bracket"></div>
+          <span class="matrix-dim">\(2 \times 1\)</span>
+        </div>
+
+        <div class="matrix-operator">+</div>
+
+        <!-- Vector Residuals e -->
+        <div class="matrix-wrap">
+          <span class="matrix-name">\(\boldsymbol{\epsilon}\)</span>
+          <div id="matrix-e" class="matrix bracket"></div>
+          <span class="matrix-dim">\(n \times 1\)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="explanation-box step-sidebar">
+      <h3>Scaling to N Dimensions</h3>
+      <p>By writing each linear equation \(y_i = \beta_0 + \beta_1 x_i + \epsilon_i\), we can stack all observations into a single elegant system:</p>
+      <div class="formula-box">
+        \[ \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon} \]
+      </div>
+      <p>Notice that the first column of the <strong>Design Matrix \(\mathbf{X}\)</strong> consists entirely of 1s. This is the <strong>bias / intercept column</strong>, which gets multiplied by \(\beta_0\).</p>
+      <p>The second column contains your raw \(x_i\) features, which gets multiplied by \(\beta_1\).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 4: NORMAL EQUATION ═══════════════ -->
+<section class="step-panel" id="step-4">
+  <h2>Step 5 — Solving the Normal Equation</h2>
+  <p class="desc">In matrix form, the OLS solution is computed in a single step using the <strong>Normal Equation</strong>. Watch every intermediate matrix operation calculated live.</p>
+
+  <div class="layout-row flex-start wide-layout">
+    <div class="matrix-ops-flow">
+      <!-- Row 1: X^T X -->
+      <div class="op-step">
+        <div class="op-title">1. Transpose design matrix product: \(\mathbf{X}^T\mathbf{X}\)</div>
+        <div class="op-body">
+          <div class="matrix-wrap">
+            <div id="matrix-xtx" class="matrix bracket small"></div>
+            <span class="matrix-dim">\(2 \times 2\)</span>
+          </div>
+          <div class="op-explanation">
+            \[ \mathbf{X}^T\mathbf{X} = \begin{pmatrix} n & \sum x_i \\ \sum x_i & \sum x_i^2 \end{pmatrix} \]
+            <p>Holds sample size, sum, and sum of squares of \(x\).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: (X^T X)^-1 -->
+      <div class="op-step">
+        <div class="op-title">2. Invert the product: \((\mathbf{X}^T\mathbf{X})^{-1}\)</div>
+        <div class="op-body">
+          <div class="matrix-wrap">
+            <div id="matrix-xtx-inv" class="matrix bracket small"></div>
+            <span class="matrix-dim">\(2 \times 2\)</span>
+          </div>
+          <div class="op-explanation">
+            \[ \mathbf{A}^{-1} = \frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix} \]
+            <p>Computed using the analytical 2D matrix inverse. Determinant = <span id="determinant-val" class="math-mono">0.00</span>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: X^T y -->
+      <div class="op-step">
+        <div class="op-title">3. Transpose design matrix and output: \(\mathbf{X}^T\mathbf{y}\)</div>
+        <div class="op-body">
+          <div class="matrix-wrap">
+            <div id="matrix-xty" class="matrix bracket small"></div>
+            <span class="matrix-dim">\(2 \times 1\)</span>
+          </div>
+          <div class="op-explanation">
+            \[ \mathbf{X}^T\mathbf{y} = \begin{pmatrix} \sum y_i \\ \sum x_i y_i \end{pmatrix} \]
+            <p>Projecting the target vector \(\mathbf{y}\) onto the column space of \(\mathbf{X}\).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Beta = (X^T X)^-1 X^T y -->
+      <div class="op-step final-step">
+        <div class="op-title">4. Multiply to solve: \(\boldsymbol{\beta} = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}\)</div>
+        <div class="op-body">
+          <div class="matrix-wrap">
+            <div id="matrix-beta-solved" class="matrix bracket small highlighted"></div>
+            <span class="matrix-dim">\(2 \times 1\)</span>
+          </div>
+          <div class="op-explanation">
+            <p>This gives the exact same OLS coefficients as the simple analytical formulas in Step 2!</p>
+            <p class="coef-check">
+              \(\beta_0 = \) <span id="matrix-beta0-val" class="math-mono">0.00</span><br>
+              \(\beta_1 = \) <span id="matrix-beta1-val" class="math-mono">0.00</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="explanation-box step-sidebar">
+      <h3>The Derivation</h3>
+      <p>To find the \(\boldsymbol{\beta}\) that minimizes the squared residuals, we write the objective function in matrix form:</p>
+      <div class="formula-box">
+        \[ S(\boldsymbol{\beta}) = (\mathbf{y} - \mathbf{X}\boldsymbol{\beta})^T(\mathbf{y} - \mathbf{X}\boldsymbol{\beta}) \]
+      </div>
+      <p>Taking the gradient with respect to \(\boldsymbol{\beta}\):</p>
+      <div class="formula-box">
+        \[ \nabla_{\boldsymbol{\beta}} S = -2\mathbf{X}^T\mathbf{y} + 2\mathbf{X}^T\mathbf{X}\boldsymbol{\beta} \]
+      </div>
+      <p>Setting the gradient to \(\mathbf{0}\) yields the <strong>Normal Equation</strong>:</p>
+      <div class="formula-box">
+        \[ \mathbf{X}^T\mathbf{X}\boldsymbol{\beta} = \mathbf{X}^T\mathbf{y} \]
+        \[ \boldsymbol{\beta} = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y} \]
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 5: DIAGNOSTICS ═══════════════ -->
+<section class="step-panel" id="step-5">
+  <h2>Step 6 — OLS Assumptions & Diagnostic Plots</h2>
+  <p class="desc">Linear regression relies on key assumptions (LINE) to make valid statistical inferences. Examine these diagnostic charts calculated live from your data.</p>
+
+  <div class="layout-row flex-start">
+    <div class="diagnostics-grid">
+      <!-- Diagnostic Plot 1 -->
+      <div class="diag-card">
+        <h3>Residuals vs. Fitted Values</h3>
+        <p class="note">Tests Homoscedasticity (equal variance) and Linearity. Points should be scattered randomly around the 0 line with no distinct pattern.</p>
+        <svg id="diag-residual-svg" width="340" height="260">
+          <g id="diag-res-grid"></g>
+          <line id="diag-res-zero" class="zero-line" x1="0" y1="0" x2="0" y2="0" />
+          <g id="diag-res-points"></g>
+        </svg>
+      </div>
+
+      <!-- Diagnostic Plot 2 -->
+      <div class="diag-card">
+        <h3>Residual Distribution Histogram</h3>
+        <p class="note">Tests Normality of Errors. Residuals should ideally follow a bell-shaped normal curve centered at 0.</p>
+        <svg id="diag-hist-svg" width="340" height="260">
+          <g id="diag-hist-grid"></g>
+          <!-- Bars are drawn dynamically -->
+          <g id="diag-hist-bars"></g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="explanation-box step-sidebar diagnostics-explanation">
+      <h3>Evaluating Model Fit</h3>
+      
+      <div class="metric-block">
+        <h4>Coefficient of Determination (\(R^2\))</h4>
+        <p class="note">Measures the proportion of variance in the dependent variable \(y\) that is predictable from the independent variable \(x\).</p>
+        <div class="formula-box">
+          \[ R^2 = 1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}} = \mathbf{\text{loading...}} \]
+          <div id="r2-sub-calc" class="math-sub"></div>
+        </div>
+      </div>
+
+      <div class="metric-block">
+        <h4>Adjusted \(R^2\)</h4>
+        <p class="note">Adjusts \(R^2\) based on the number of predictors. Prevents overfitting inflation.</p>
+        <div class="formula-box">
+          \[ R^2_{\text{adj}} = 1 - (1 - R^2)\frac{n-1}{n-p-1} \]
+          \[ R^2_{\text{adj}} = \mathbf{\text{loading...}} \]
+        </div>
+      </div>
+
+      <div class="assumptions-checklist">
+        <h4>The LINE Assumptions Checklist</h4>
+        <ul>
+          <li><strong>L · Linearity:</strong> Is the relationship linear? Check the Residuals vs Fitted plot; a curved trend implies non-linearity.</li>
+          <li><strong>I · Independence:</strong> Are errors independent? Ensure observations don't have auto-correlation.</li>
+          <li><strong>N · Normality:</strong> Are errors normally distributed? Check the residual histogram distribution.</li>
+          <li><strong>E · Equal Variance (Homoscedasticity):</strong> Are residuals spread equally? A funnel shape in Residuals vs Fitted implies heteroscedasticity.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ NAVIGATION ═══ -->
+<div class="nav-controls">
+  <button id="btn-prev" disabled>← Previous</button>
+  <span id="step-indicator">Step 1 / 6</span>
+  <button id="btn-next">Next →</button>
+</div>
+
+<script src="ols.js?v=1"></script>
+
+</body>
+</html>

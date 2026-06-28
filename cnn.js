@@ -166,7 +166,7 @@ function renderGrid(containerId, matrix, opts) {
   const onCellClick = opts.onCellClick;
   const onCellHover = opts.onCellHover;
 
-  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', 1fr)';
+  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', max-content)';
   if (small) el.classList.add('small');
   el.innerHTML = '';
 
@@ -214,7 +214,7 @@ function renderNumberMatrix(containerId, matrix, opts) {
   if (!el) return;
   const colorMode = opts.colorMode || 'signed';
   const small     = opts.small     || false;
-  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', 1fr)';
+  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', max-content)';
   if (small) el.classList.add('small');
   el.innerHTML = '';
   matrix.forEach(function(row) {
@@ -279,7 +279,7 @@ function renderStep1() {
   renderGrid('conv-input-grid', inputMatrix, { colorMode: 'binary', small: true });
 
   const kEl = document.getElementById('kernel-grid');
-  kEl.style.gridTemplateColumns = 'repeat(' + kernel[0].length + ', 1fr)';
+  kEl.style.gridTemplateColumns = 'repeat(' + kernel[0].length + ', max-content)';
   kEl.innerHTML = '';
   kernel.forEach(function(row, i) {
     row.forEach(function(val, j) {
@@ -300,7 +300,7 @@ function renderStep1() {
   });
 
   const outEl = document.getElementById('conv-output-grid');
-  outEl.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', 1fr)';
+  outEl.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', max-content)';
   outEl.innerHTML = '';
   featureMap.forEach(function(row, i) {
     row.forEach(function(val, j) {
@@ -351,7 +351,7 @@ document.getElementById('btn-kernel-blur').addEventListener('click', function() 
 // --- Step 2: ReLU ------------------------------------------------------------
 function renderStep2() {
   const rIn = document.getElementById('relu-input-grid');
-  rIn.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', 1fr)';
+  rIn.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', max-content)';
   rIn.innerHTML = '';
   featureMap.forEach(function(row) {
     row.forEach(function(val) {
@@ -363,7 +363,7 @@ function renderStep2() {
   });
 
   const rOut = document.getElementById('relu-output-grid');
-  rOut.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', 1fr)';
+  rOut.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', max-content)';
   rOut.innerHTML = '';
   featureMap.forEach(function(row, i) {
     row.forEach(function(val, j) {
@@ -385,7 +385,7 @@ function renderStep2() {
 // --- Step 3: Max Pooling -----------------------------------------------------
 function renderStep3() {
   const pIn = document.getElementById('pool-input-grid');
-  pIn.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', 1fr)';
+  pIn.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', max-content)';
   pIn.innerHTML = '';
   reluMap.forEach(function(row) {
     row.forEach(function(val) {
@@ -397,7 +397,7 @@ function renderStep3() {
   });
 
   const pOut = document.getElementById('pool-output-grid');
-  pOut.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', 1fr)';
+  pOut.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', max-content)';
   pOut.innerHTML = '';
   poolMap.forEach(function(row, i) {
     row.forEach(function(val, j) {
@@ -431,7 +431,7 @@ function showPoolDetail(oi, oj) {
 // --- Step 4: Flatten ---------------------------------------------------------
 function renderStep4() {
   const fIn = document.getElementById('flatten-input-grid');
-  fIn.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', 1fr)';
+  fIn.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', max-content)';
   fIn.innerHTML = '';
   poolMap.forEach(function(row, i) {
     row.forEach(function(val, j) {
@@ -458,7 +458,7 @@ function renderStep4() {
 // --- Step 5: FC Layer --------------------------------------------------------
 function renderStep5() {
   const wEl = document.getElementById('fc-weight-grid');
-  wEl.style.gridTemplateColumns = 'repeat(' + fcWeights[0].length + ', 1fr)';
+  wEl.style.gridTemplateColumns = 'repeat(' + fcWeights[0].length + ', max-content)';
   wEl.innerHTML = '';
   fcWeights.forEach(function(row) {
     row.forEach(function(val) {
