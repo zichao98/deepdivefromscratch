@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual, interactive guide to GitHub for beginners.">
+  <title>GitHub Hero — Beginner Field Guide</title>
+  <style>
+    :root { --ink:#e8eef9; --muted:#a5b4cf; --bg:#08111f; --panel:#101d31; --line:#263958; --blue:#6ea8ff; --purple:#a78bfa; --green:#55d6a2; --yellow:#ffd166; --red:#ff7994; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 10% -10%,#193d71 0,transparent 32%),radial-gradient(circle at 90% 7%,#3a255f 0,transparent 28%),var(--bg); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.6; }
+    a { color:var(--blue); }
+    button { font:inherit; }
+    .shell { width:min(1140px,calc(100% - 32px)); margin:auto; }
+    .hero { padding:72px 0 40px; display:grid; grid-template-columns:1.15fr .85fr; gap:34px; align-items:center; }
+    .eyebrow { color:var(--green); font-size:.82rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    h1,h2,h3 { line-height:1.15; margin:0 0 14px; }
+    h1 { font-size:clamp(2.55rem,6vw,5.5rem); letter-spacing:-.055em; }
+    h1 span { color:var(--blue); }
+    h2 { font-size:clamp(1.7rem,3vw,2.5rem); letter-spacing:-.035em; }
+    h3 { font-size:1.12rem; }
+    p { color:var(--muted); margin:0 0 16px; }
+    .lead { font-size:1.17rem; max-width:690px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:#0d1930bb; font-size:.86rem; }
+    .orbital { position:relative; min-height:330px; display:grid; place-items:center; border:1px solid var(--line); border-radius:30px; overflow:hidden; background:linear-gradient(145deg,#142b4b,#11152d); }
+    .orbital:before,.orbital:after { content:""; position:absolute; width:290px; height:290px; border:1px solid #6ea8ff55; border-radius:50%; }
+    .orbital:after { width:190px; height:190px; border-color:#a78bfa77; }
+    .octo { z-index:1; width:120px; height:120px; border-radius:32px; display:grid; place-items:center; color:white; font-size:59px; background:linear-gradient(135deg,#6ea8ff,#8768e6); box-shadow:0 20px 70px #0a1538; transform:rotate(-7deg); }
+    .spark { position:absolute; color:var(--yellow); font-size:1.6rem; animation:float 4s ease-in-out infinite; }
+    .spark.one { top:24%; left:19%; } .spark.two { right:19%; bottom:26%; animation-delay:-1.5s; color:var(--green); } .spark.three { top:16%; right:28%; animation-delay:-2s; color:var(--purple); }
+    @keyframes float { 50% { transform:translateY(-13px) rotate(12deg); } }
+    nav { position:sticky; top:0; z-index:20; border-block:1px solid #263958bb; background:#08111fe8; backdrop-filter:blur(15px); }
+    .nav-inner { min-height:58px; display:flex; align-items:center; gap:18px; overflow:auto; white-space:nowrap; }
+    nav a { color:var(--muted); text-decoration:none; font-size:.91rem; } nav a:hover { color:var(--ink); }
+    section { padding:72px 0; border-bottom:1px solid #26395888; }
+    .section-head { max-width:710px; margin-bottom:28px; }
+    .grid { display:grid; gap:16px; } .grid.three { grid-template-columns:repeat(3,1fr); } .grid.two { grid-template-columns:repeat(2,1fr); }
+    .card { border:1px solid var(--line); background:linear-gradient(145deg,#12223a,#0d182a); border-radius:18px; padding:22px; }
+    .icon { width:43px; height:43px; display:grid; place-items:center; border-radius:13px; margin-bottom:15px; background:#284b7f; color:#dceaff; font-size:1.28rem; }
+    .card p { font-size:.94rem; margin:0; }
+    .flow { display:flex; align-items:center; gap:10px; overflow:auto; padding:4px 0 12px; }
+    .flow-node { flex:0 0 158px; padding:15px; text-align:center; border:1px solid var(--line); border-radius:14px; background:#0d192c; font-weight:750; }
+    .flow-node small { display:block; color:var(--muted); font-weight:500; margin-top:3px; } .arrow { flex:0 0 auto; color:var(--blue); font-size:1.5rem; }
+    .terminal { overflow:hidden; border:1px solid #314563; border-radius:16px; background:#07101d; box-shadow:0 20px 45px #03081477; }
+    .terminal-bar { display:flex; align-items:center; gap:7px; padding:12px 15px; color:#7f91ae; font-size:.82rem; background:#132238; } .dot { width:10px; height:10px; border-radius:50%; background:var(--red); } .dot:nth-child(2){background:var(--yellow)} .dot:nth-child(3){background:var(--green)}
+    pre { margin:0; padding:22px; overflow:auto; color:#d8e7ff; font: .9rem/1.75 ui-monospace,SFMono-Regular,Consolas,monospace; } .cmd { color:#86efac; } .comment { color:#8b9bb7; }
+    .copy { float:right; margin:11px; padding:6px 10px; border:1px solid #3b5071; border-radius:7px; color:#d6e5fc; background:#1c304d; cursor:pointer; font-size:.77rem; } .copy:hover { background:#2c4a72; }
+    .tabs { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; } .tab { padding:9px 13px; border:1px solid var(--line); color:var(--muted); background:transparent; border-radius:9px; cursor:pointer; } .tab.active { color:#fff; background:#315d9b; border-color:#6ea8ff; }
+    .tab-panel { display:none; } .tab-panel.active { display:block; }
+    .checklist { display:grid; gap:10px; } .check { width:100%; display:flex; gap:13px; align-items:flex-start; padding:14px 16px; text-align:left; color:var(--ink); border:1px solid var(--line); border-radius:12px; background:#0d192c; cursor:pointer; } .check:hover { border-color:#5278ad; } .check .mark { width:23px; height:23px; flex:0 0 23px; display:grid; place-items:center; border:1px solid #607a9e; border-radius:7px; color:transparent; } .check.done .mark { background:var(--green); border-color:var(--green); color:#082317; } .check.done { border-color:#3b8a6e; } .check small { display:block; color:var(--muted); }
+    .callout { border-left:4px solid var(--yellow); border-radius:0 12px 12px 0; background:#2d271637; padding:15px 18px; color:#e9ddb4; }
+    .glossary { display:grid; grid-template-columns:150px 1fr; gap:0; border:1px solid var(--line); border-radius:14px; overflow:hidden; } .glossary > div { padding:12px 15px; border-bottom:1px solid var(--line); } .glossary > div:nth-last-child(-n+2) { border-bottom:0; } .term { color:var(--green); font-weight:800; background:#10243a; }
+    .footer { padding:40px 0 60px; text-align:center; }
+    .badge { display:inline-flex; padding:5px 10px; border-radius:999px; color:#cbbdff; background:#a78bfa22; font-size:.77rem; font-weight:700; }
+    @media (max-width:800px) { .hero,.grid.three,.grid.two { grid-template-columns:1fr; } .hero { padding-top:48px; } .orbital { min-height:240px; } .glossary { grid-template-columns:105px 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="shell hero">
+    <div>
+      <div class="eyebrow">Mission briefing · GitHub for beginners</div>
+      <h1>Become a <span>GitHub Hero</span>.</h1>
+      <p class="lead">A practical visual guide for saving your work, collaborating safely, and understanding the vocabulary without memorizing a textbook.</p>
+      <span class="pill">⚡ Read it once, use it forever</span>
+    </div>
+    <div class="orbital" aria-label="GitHub Hero illustration"><div class="spark one">✦</div><div class="spark two">✦</div><div class="spark three">✦</div><div class="octo">⌘</div></div>
+  </header>
+  <nav><div class="shell nav-inner"><a href="#map">Mental map</a><a href="#setup">Set up</a><a href="#upload">Upload work</a><a href="#team">Fork & collaborate</a><a href="#practice">Hero checklist</a><a href="#words">Glossary</a></div></nav>
+  <main>
+    <section id="map"><div class="shell"><div class="section-head"><span class="badge">The big picture</span><h2>Git is your time machine. GitHub is its home on the internet.</h2><p>Use <strong>Git</strong> on your computer to track changes. Use <strong>GitHub</strong> to back up the project, share it, review it, and work with others.</p></div><div class="grid three"><article class="card"><div class="icon">💻</div><h3>Your computer</h3><p>The local project folder where you edit code and make commits.</p></article><article class="card"><div class="icon">⏱</div><h3>Git commits</h3><p>Named snapshots of your project. You can compare or restore them later.</p></article><article class="card"><div class="icon">☁</div><h3>GitHub repository</h3><p>The remote copy of your project on GitHub, often called the “repo.”</p></article></div><div class="flow" style="margin-top:25px"><div class="flow-node">Edit<small>change files</small></div><div class="arrow">→</div><div class="flow-node">Stage<small>choose changes</small></div><div class="arrow">→</div><div class="flow-node">Commit<small>save snapshot</small></div><div class="arrow">→</div><div class="flow-node">Push<small>send to GitHub</small></div></div></div></section>
+    <section id="setup"><div class="shell"><div class="section-head"><span class="badge">Level 1</span><h2>Set up GitHub once.</h2><p>These are the only essentials needed before you share a project.</p></div><div class="grid two"><article class="card"><h3>1. Create a GitHub account</h3><p>Visit <a href="https://github.com/signup" target="_blank" rel="noreferrer">github.com/signup</a>. Pick a professional username; it will appear in your project URLs and commits.</p></article><article class="card"><h3>2. Install Git</h3><p>Windows: install <a href="https://git-scm.com/download/win" target="_blank" rel="noreferrer">Git for Windows</a>. Open PowerShell and run <code>git --version</code> to confirm it works.</p></article><article class="card"><h3>3. Tell Git who you are</h3><p>Git adds this author name and email to your commits. Do this once per computer.</p><div class="terminal"><div class="terminal-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i> PowerShell</div><button class="copy" data-copy="git config --global user.name &quot;Your Name&quot;\ngit config --global user.email &quot;you@example.com&quot;">Copy</button><pre><span class="cmd">git config --global user.name "Your Name"</span>
+<span class="cmd">git config --global user.email "you@example.com"</span></pre></div></article><article class="card"><h3>4. Create a repository</h3><p>On GitHub, click <strong>+</strong> → <strong>New repository</strong>. Give it a name and choose <strong>Private</strong> for personal work or <strong>Public</strong> to share openly. For an existing local project, do not initialize it with a README.</p></article></div></div></section>
+    <section id="upload"><div class="shell"><div class="section-head"><span class="badge">Level 2</span><h2>Upload your project to GitHub.</h2><p>Choose the path that matches where your files are right now.</p></div><div class="tabs" role="tablist"><button class="tab active" data-tab="existing">Existing folder + terminal</button><button class="tab" data-tab="browser">Browser upload</button><button class="tab" data-tab="newproject">Starting a new project</button></div><div class="tab-panel active" id="existing"><div class="callout"><strong>Best for code projects:</strong> open PowerShell inside the project folder. Replace the URL with the one GitHub gives your new repository.</div><div class="terminal" style="margin-top:16px"><div class="terminal-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i> PowerShell</div><button class="copy" data-copy="git init\ngit add --all\ngit commit -m &quot;Initial commit&quot;\ngit branch -M main\ngit remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git\ngit push -u origin main">Copy</button><pre><span class="comment"># do this inside your project folder</span>
+<span class="cmd">git init</span>
+<span class="cmd">git add --all</span>
+<span class="cmd">git commit -m "Initial commit"</span>
+<span class="cmd">git branch -M main</span>
+<span class="cmd">git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git</span>
+<span class="cmd">git push -u origin main</span></pre></div></div><div class="tab-panel" id="browser"><div class="grid two"><article class="card"><h3>Use the web uploader</h3><p>Open a GitHub repository, choose <strong>Add file</strong> → <strong>Upload files</strong>, drag files in, then click <strong>Commit changes</strong>.</p></article><article class="card"><h3>Know the limitation</h3><p>It is excellent for a few files, but the terminal workflow is better for regular updates because it preserves your project history.</p></article></div></div><div class="tab-panel" id="newproject"><div class="terminal"><div class="terminal-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i> PowerShell</div><button class="copy" data-copy="mkdir my-project\nSet-Location my-project\ngit init\n'Hello, GitHub!' | Set-Content README.md\ngit add README.md\ngit commit -m &quot;Add project README&quot;">Copy</button><pre><span class="cmd">mkdir my-project</span>
+<span class="cmd">Set-Location my-project</span>
+<span class="cmd">git init</span>
+<span class="cmd">'Hello, GitHub!' | Set-Content README.md</span>
+<span class="cmd">git add README.md</span>
+<span class="cmd">git commit -m "Add project README"</span></pre></div></div></div></section>
+    <section id="team"><div class="shell"><div class="section-head"><span class="badge">Level 3</span><h2>Collaborate without fear.</h2><p>Forks and pull requests let you propose changes without directly changing someone else’s original project.</p></div><div class="flow"><div class="flow-node">Original repo<small>someone else’s project</small></div><div class="arrow">→ Fork →</div><div class="flow-node">Your fork<small>your copy on GitHub</small></div><div class="arrow">→ Clone →</div><div class="flow-node">Your computer<small>make a branch</small></div><div class="arrow">→ Push →</div><div class="flow-node">Pull request<small>request review</small></div></div><div class="grid three" style="margin-top:24px"><article class="card"><div class="icon">🍴</div><h3>Fork</h3><p>A personal GitHub copy of someone else’s repository. You can experiment freely without touching the original.</p></article><article class="card"><div class="icon">🌿</div><h3>Branch</h3><p>An isolated line of work. Create one for a feature or fix so the main branch stays stable.</p></article><article class="card"><div class="icon">🔁</div><h3>Pull request</h3><p>A proposal to merge your branch into another branch. It is where people review, discuss, and approve changes.</p></article></div><div class="terminal" style="margin-top:22px"><div class="terminal-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i> Everyday collaboration</div><button class="copy" data-copy="git checkout -b add-login-page\ngit add --all\ngit commit -m &quot;Add login page&quot;\ngit push -u origin add-login-page">Copy</button><pre><span class="comment"># after cloning your fork, make your own branch</span>
+<span class="cmd">git checkout -b add-login-page</span>
+<span class="cmd">git add --all</span>
+<span class="cmd">git commit -m "Add login page"</span>
+<span class="cmd">git push -u origin add-login-page</span>
+<span class="comment"># then open GitHub and click “Compare & pull request”</span></pre></div></div></section>
+    <section id="practice"><div class="shell"><div class="section-head"><span class="badge">Level 4</span><h2>Your repeatable hero routine.</h2><p>Click each task as you learn it. Your progress is saved in this browser.</p></div><div class="checklist" id="checklist"><button class="check" data-id="account"><span class="mark">✓</span><span><strong>Create a GitHub account</strong><small>Set a username and verify your email.</small></span></button><button class="check" data-id="git"><span class="mark">✓</span><span><strong>Install and configure Git</strong><small>Check <code>git --version</code>, then set your name and email.</small></span></button><button class="check" data-id="repo"><span class="mark">✓</span><span><strong>Create a private practice repository</strong><small>Add a README that introduces the project.</small></span></button><button class="check" data-id="commit"><span class="mark">✓</span><span><strong>Make a commit and push it</strong><small>Change one line, use <code>git add</code>, <code>git commit</code>, and <code>git push</code>.</small></span></button><button class="check" data-id="branch"><span class="mark">✓</span><span><strong>Create a branch and pull request</strong><small>Practice the safe collaboration workflow in your own repository.</small></span></button></div></div></section>
+    <section id="words"><div class="shell"><div class="section-head"><span class="badge">Reference</span><h2>Vocabulary you will actually use.</h2></div><div class="glossary"><div class="term">Repository / repo</div><div>A project folder plus its complete Git history.</div><div class="term">Commit</div><div>A saved snapshot of changes, with a short message explaining what changed.</div><div class="term">Clone</div><div>Download a GitHub repository to your computer with its history.</div><div class="term">Remote / origin</div><div>A named GitHub destination. By convention, <code>origin</code> is the main remote repository.</div><div class="term">Pull</div><div>Download changes from GitHub and apply them to your local project.</div><div class="term">Push</div><div>Upload your local commits to GitHub.</div><div class="term">.gitignore</div><div>A file that prevents secrets, virtual environments, generated files, or local data from being committed.</div></div><div class="callout" style="margin-top:22px"><strong>Security rule:</strong> never commit passwords, API keys, tokens, or `.env` files. Add them to `.gitignore` first. If a secret reaches GitHub, rotate it immediately—even if you delete the file later.</div></div></section>
+  </main>
+  <footer class="shell footer"><h2>Hero status: ready for your first push. 🚀</h2><p>Small commits, clear messages, and regular pushes are the superpowers.</p></footer>
+  <script>
+    document.querySelectorAll('.copy').forEach(button => button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(button.dataset.copy);
+      const previous = button.textContent; button.textContent = 'Copied!'; setTimeout(() => button.textContent = previous, 1400);
+    }));
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(item => item.classList.toggle('active', item === tab));
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === tab.dataset.tab));
+    }));
+    const completed = new Set(JSON.parse(localStorage.getItem('githubHeroChecklist') || '[]'));
+    document.querySelectorAll('.check').forEach(item => {
+      item.classList.toggle('done', completed.has(item.dataset.id));
+      item.addEventListener('click', () => { completed.has(item.dataset.id) ? completed.delete(item.dataset.id) : completed.add(item.dataset.id); item.classList.toggle('done'); localStorage.setItem('githubHeroChecklist', JSON.stringify([...completed])); });
+    });
+  </script>
+</body>
+</html>
