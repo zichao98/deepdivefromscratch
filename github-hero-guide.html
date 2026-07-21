@@ -4,7 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A visual, interactive guide to GitHub for beginners.">
-  <title>GitHub Hero — Beginner Field Guide</title>
+  <meta name="keywords" content="GitHub, Git, beginner, repository, commit, fork, branch, pull request, push, clone, .gitignore, collaboration">
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/github-hero-guide.html" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "GitHub Hero — Beginner Field Guide",
+    "description": "A visual, interactive guide to GitHub for beginners.",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/github-hero-guide.html",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <title>GitHub Hero — Beginner Field Guide | Deep Dive From Scratch</title>
   <style>
     :root { --ink:#e8eef9; --muted:#a5b4cf; --bg:#08111f; --panel:#101d31; --line:#263958; --blue:#6ea8ff; --purple:#a78bfa; --green:#55d6a2; --yellow:#ffd166; --red:#ff7994; }
     * { box-sizing:border-box; }
@@ -30,7 +42,16 @@
     .spark { position:absolute; color:var(--yellow); font-size:1.6rem; animation:float 4s ease-in-out infinite; }
     .spark.one { top:24%; left:19%; } .spark.two { right:19%; bottom:26%; animation-delay:-1.5s; color:var(--green); } .spark.three { top:16%; right:28%; animation-delay:-2s; color:var(--purple); }
     @keyframes float { 50% { transform:translateY(-13px) rotate(12deg); } }
-    nav { position:sticky; top:0; z-index:20; border-block:1px solid #263958bb; background:#08111fe8; backdrop-filter:blur(15px); }
+    .top-nav { display:flex; align-items:center; justify-content:space-between; padding:0.85rem 2rem; background:#08111fe8; backdrop-filter:blur(15px); border-bottom:1px solid #263958bb; position:sticky; top:0; z-index:100; }
+    .nav-brand { display:flex; align-items:center; gap:0.5rem; font-size:1.05rem; font-weight:700; color:var(--ink); text-decoration:none; letter-spacing:-0.02em; }
+    .nav-brand span { background:linear-gradient(90deg,var(--blue),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .nav-right { display:flex; gap:0.5rem; align-items:center; }
+    .nav-links a { color:var(--muted); text-decoration:none; font-size:0.875rem; font-weight:500; padding:0.4rem 0.8rem; border-radius:8px; transition: color .2s, background .2s; }
+    .nav-links a:hover { color:var(--ink); background:rgba(255,255,255,0.06); }
+    .nav-bmc { background:#FFDD00 !important; color:#1a1a1a !important; border-radius:8px; padding:0.4rem 0.9rem !important; font-weight:600 !important; font-size:0.82rem !important; }
+    .site-footer { text-align:center; padding:2rem 1rem; color:var(--muted); font-size:0.8rem; border-top:1px solid var(--line); }
+    .site-footer a { color:var(--blue); }
+    nav { position:sticky; top:58px; z-index:20; border-block:1px solid #263958bb; background:#08111fe8; backdrop-filter:blur(15px); }
     .nav-inner { min-height:58px; display:flex; align-items:center; gap:18px; overflow:auto; white-space:nowrap; }
     nav a { color:var(--muted); text-decoration:none; font-size:.91rem; } nav a:hover { color:var(--ink); }
     section { padding:72px 0; border-bottom:1px solid #26395888; }
@@ -57,6 +78,17 @@
   </style>
 </head>
 <body>
+<div class="top-nav">
+  <a href="/" class="nav-brand"><span style="font-size:1.2rem">🏊</span> <span>Deep Dive From Scratch</span></a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/#posts">Posts</a>
+      <a href="/about.html">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+  </div>
+</div>
   <header class="shell hero">
     <div>
       <div class="eyebrow">Mission briefing · GitHub for beginners</div>
@@ -93,6 +125,9 @@
     <section id="words"><div class="shell"><div class="section-head"><span class="badge">Reference</span><h2>Vocabulary you will actually use.</h2></div><div class="glossary"><div class="term">Repository / repo</div><div>A project folder plus its complete Git history.</div><div class="term">Commit</div><div>A saved snapshot of changes, with a short message explaining what changed.</div><div class="term">Clone</div><div>Download a GitHub repository to your computer with its history.</div><div class="term">Remote / origin</div><div>A named GitHub destination. By convention, <code>origin</code> is the main remote repository.</div><div class="term">Pull</div><div>Download changes from GitHub and apply them to your local project.</div><div class="term">Push</div><div>Upload your local commits to GitHub.</div><div class="term">.gitignore</div><div>A file that prevents secrets, virtual environments, generated files, or local data from being committed.</div></div><div class="callout" style="margin-top:22px"><strong>Security rule:</strong> never commit passwords, API keys, tokens, or `.env` files. Add them to `.gitignore` first. If a secret reaches GitHub, rotate it immediately—even if you delete the file later.</div></div></section>
   </main>
   <footer class="shell footer"><h2>Hero status: ready for your first push. 🚀</h2><p>Small commits, clear messages, and regular pushes are the superpowers.</p></footer>
+  <footer class="site-footer">
+    <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+  </footer>
   <script>
     document.querySelectorAll('.copy').forEach(button => button.addEventListener('click', async () => {
       await navigator.clipboard.writeText(button.dataset.copy);
