@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kubernetes & Containers from Scratch — Docker, Podman, kubectl | Deep Dive From Scratch</title>
+  <meta name="description" content="Interactive beginner guide to containers and Kubernetes. Compare Docker and Podman commands, build images, run a local cluster with kind/minikube, and deploy your first app with kubectl." />
+  <meta name="keywords" content="Kubernetes tutorial, Docker, Podman, containers, kubectl, kind, minikube, DevOps, containerization" />
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/kubernetes/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Kubernetes & Containers from Scratch",
+    "description": "Interactive beginner guide to Docker, Podman, and Kubernetes with command simulators and a live YAML builder.",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/kubernetes/",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <script>
+/* ============================================================
+   Shared theme toggle — light / dark
+   Persists choice in localStorage and syncs across tabs.
+   Must be loaded in <head> before render to avoid FOUC.
+   ============================================================ */
+
+(function () {
+  var STORAGE_KEY = 'ddfs-theme';
+
+  function getStoredTheme() {
+    try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+  }
+
+  function setStoredTheme(theme) {
+    try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
+  }
+
+  function getPreferredTheme() {
+    var stored = getStoredTheme();
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    updateToggleIcons(theme);
+  }
+
+  function updateToggleIcons(theme) {
+    if (!theme) theme = document.documentElement.getAttribute('data-theme');
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      var sun = btn.querySelector('.theme-icon-sun');
+      var moon = btn.querySelector('.theme-icon-moon');
+      if (sun) sun.style.display = theme === 'dark' ? 'none' : 'inline';
+      if (moon) moon.style.display = theme === 'dark' ? 'inline' : 'none';
+    });
+  }
+
+  // Apply immediately (called in <head> via the inline bootstrap below)
+  applyTheme(getPreferredTheme());
+
+  // Expose functions for buttons and inline scripts to call
+  window.DDFS = window.DDFS || {};
+  window.DDFS.toggleTheme = function () {
+    var current = document.documentElement.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    setStoredTheme(next);
+    applyTheme(next);
+  };
+  window.DDFS.updateToggleIcons = updateToggleIcons;
+
+  // Sync across tabs — update both theme and icons
+  window.addEventListener('storage', function (e) {
+    if (e.key === STORAGE_KEY && (e.newValue === 'light' || e.newValue === 'dark')) {
+      applyTheme(e.newValue);
+    }
+  });
+
+  // Update icons after DOM is ready (buttons may not exist yet when script runs in <head>)
+  document.addEventListener('DOMContentLoaded', function () {
+    updateToggleIcons();
+  });
+})();
+
+  </script>
+  <style>
+/* ============================================================
+   Kubernetes Deep Dive — Design System
+   Shares the same theme variables as the main site.
+   ============================================================ */
+
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── Theme: Dark (default) ─── */
+:root,
+[data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-alt: #161b22;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --surface-hover: #30363d;
+  --border: #30363d;
+  --border-light: #21262d;
+  --accent: #7c83ff;
+  --accent-hover: #6366f1;
+  --accent2: #2dd4bf;
+  --accent2-hover: #14b8a6;
+  --text: #e6edf3;
+  --text-secondary: #b1bac4;
+  --text-muted: #7d8590;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+  --shadow-accent: 0 8px 30px rgba(124,131,255,0.15);
+  --gradient-text: linear-gradient(135deg, #7c83ff 0%, #2dd4bf 100%);
+  --gradient-accent: linear-gradient(135deg, #7c83ff 0%, #6366f1 100%);
+  --navbar-bg: rgba(13,17,23,0.85);
+  --positive: #2dd4bf;
+  --negative: #f87171;
+  --highlight: #fbbf24;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+/* ─── Theme: Light ─── */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-alt: #f6f8fa;
+  --surface: #ffffff;
+  --surface2: #f6f8fa;
+  --surface-hover: #eaeef2;
+  --border: #d0d7de;
+  --border-light: #eaeef2;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent2: #0d9488;
+  --accent2-hover: #0f766e;
+  --text: #1f2328;
+  --text-secondary: #424a53;
+  --text-muted: #636c76;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+  --shadow-accent: 0 8px 30px rgba(99,102,241,0.12);
+  --gradient-text: linear-gradient(135deg, #6366f1 0%, #0d9488 100%);
+  --gradient-accent: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --navbar-bg: rgba(255,255,255,0.85);
+  --positive: #0d9488;
+  --negative: #dc2626;
+  --highlight: #d97706;
+}
+
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+a:hover { color: var(--accent-hover); }
+
+/* ─── Top Nav (shared with main site) ─── */
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 2rem;
+  background: var(--navbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background-color var(--transition), border-color var(--transition);
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.nav-brand:hover { color: var(--text); }
+.nav-brand-icon { font-size: 1.2rem; }
+.nav-brand-text {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.nav-right { display: flex; gap: 0.5rem; align-items: center; }
+.nav-links { display: flex; gap: 0.25rem; align-items: center; }
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background-color var(--transition);
+}
+.nav-links a:hover { color: var(--text); background: var(--surface-hover); }
+.back-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background-color var(--transition);
+  display: inline-flex;
+  align-items: center;
+}
+.back-link:hover { color: var(--text); background: var(--surface-hover); }
+
+/* ─── Buy Me a Coffee Button ─── */
+.nav-bmc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #FFDD00 !important;
+  color: #1a1a1a !important;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.9rem !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  border: 1px solid transparent !important;
+  transition: opacity var(--transition);
+}
+.nav-bmc:hover { opacity: 0.88; color: #1a1a1a !important; background: #FFDD00 !important; }
+
+/* ─── Theme Toggle ─── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  overflow: hidden;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-hover);
+}
+.theme-toggle svg { width: 18px; height: 18px; flex-shrink: 0; display: block; }
+
+/* ─── Header ─── */
+.page-header {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 100%;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,131,255,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+.page-header > * { position: relative; z-index: 1; }
+.hero-tag {
+  display: inline-block;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.85rem;
+  border-radius: 20px;
+  margin-bottom: 1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.page-header h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.subtitle {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─── Progress tracker ─── */
+.progress-tracker {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition), transform var(--transition);
+}
+.progress-dot.active { background: var(--accent); transform: scale(1.2); }
+.progress-dot.seen { background: var(--accent2); }
+
+/* ─── Pipeline Nav ─── */
+.pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 60px;
+  z-index: 90;
+}
+.step-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  text-decoration: none;
+  transition: all var(--transition);
+}
+.step-btn:hover { border-color: var(--accent); color: var(--text); }
+.step-btn.active {
+  background: var(--gradient-accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.arrow { color: var(--text-muted); font-size: 1.1rem; }
+
+/* ─── Main & Sections ─── */
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+.content-section {
+  scroll-margin-top: 130px;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--border-light);
+  animation: fadeIn 0.35s ease;
+}
+.content-section:last-of-type { border-bottom: none; }
+.content-section h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.lead {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+}
+.content-section h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.75rem;
+  color: var(--text);
+}
+.content-section p { color: var(--text-secondary); margin-bottom: 1rem; }
+.content-section ul, .content-section ol { margin-left: 1.25rem; color: var(--text-secondary); }
+.content-section li { margin-bottom: 0.4rem; }
+.content-section code {
+  font-family: var(--font-mono);
+  background: var(--surface2);
+  color: var(--accent2);
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}
+.desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Two-column cards ─── */
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.explain-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.explain-card h3 {
+  font-size: 1rem;
+  color: var(--accent2);
+  margin: 0 0 0.5rem;
+}
+.explain-card p, .explain-card li { font-size: 0.9rem; }
+
+/* ─── SVG diagrams ─── */
+.diagram-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.diagram-wrap svg { max-width: 100%; height: auto; }
+.diagram-box {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: all var(--transition);
+}
+.diagram-box.host { fill: var(--bg); }
+.diagram-box.app { fill: rgba(124,131,255,0.18); }
+.diagram-box.app-alt { fill: rgba(45,212,191,0.18); }
+.diagram-box.os { fill: var(--surface2); }
+.diagram-box.hypervisor { fill: rgba(251,191,36,0.15); }
+.diagram-box.runtime { fill: rgba(124,131,255,0.22); }
+.diagram-box.control-plane { fill: rgba(124,131,255,0.10); }
+.diagram-box.worker { fill: rgba(45,212,191,0.10); }
+.diagram-box.component { fill: var(--surface2); }
+.diagram-label {
+  fill: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  pointer-events: none;
+}
+.diagram-label.small { font-size: 12px; }
+.diagram-label.xsmall { font-size: 10px; fill: var(--text-muted); }
+.diagram-line { stroke: var(--text-muted); stroke-width: 1.5; }
+.diagram-group rect, .diagram-group {
+  cursor: pointer;
+}
+.diagram-group:hover rect.diagram-box {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(124,131,255,0.25));
+}
+.diagram-caption {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  min-height: 1.4em;
+}
+
+/* ─── Engine cards ─── */
+.engine-diagram {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.engine-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  text-align: center;
+}
+.engine-card h3 {
+  font-size: 1rem;
+  color: var(--accent2);
+  margin-bottom: 0.75rem;
+}
+.engine-card svg { width: 100%; max-width: 260px; height: auto; }
+
+/* ─── Compare table ─── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.compare-table th, .compare-table td {
+  padding: 0.8rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+.compare-table th {
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 700;
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table td { color: var(--text-secondary); }
+
+/* ─── Code files ─── */
+.code-file {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.code-header {
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-bottom: 1px solid var(--border-light);
+  font-family: var(--font-mono);
+}
+.code-file pre {
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.code-file pre code {
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  font-size: inherit;
+}
+
+/* ─── Terminal widget ─── */
+.terminal-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: 1rem 0 1.5rem;
+}
+.terminal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-light);
+}
+.term-tab {
+  flex: 1;
+  background: var(--surface2);
+  border: none;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-muted);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-radius: 0;
+}
+.term-tab:last-child { border-right: none; }
+.term-tab:hover { color: var(--text); background: var(--surface-hover); }
+.term-tab.active {
+  background: var(--gradient-accent);
+  color: #fff;
+}
+.terminal-screen {
+  min-height: 180px;
+  background: #0c0e12;
+  color: #c9d1d9;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+[data-theme="light"] .terminal-screen {
+  background: #1f2328;
+  color: #e6edf3;
+}
+.term-line { white-space: pre-wrap; margin-bottom: 0.35rem; }
+.term-line.command { color: #a5d6ff; }
+.term-line.output { color: #7d8590; }
+.term-line.success { color: #2dd4bf; }
+.term-line.error { color: #f87171; }
+.prompt { color: #2dd4bf; margin-right: 0.5rem; }
+.terminal-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--surface2);
+  border-top: 1px solid var(--border-light);
+}
+.terminal-controls button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.terminal-controls button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.terminal-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Flowchart ─── */
+.flowchart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 1rem;
+}
+.flow-node {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.55rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.flow-node:hover { border-color: var(--accent); color: var(--accent); }
+.flow-node.active {
+  background: var(--gradient-accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.flow-arrow { color: var(--text-muted); font-size: 1.1rem; }
+.flow-detail {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.flow-detail strong { color: var(--text); }
+
+/* ─── YAML builder ─── */
+.yaml-builder {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.4fr) 1fr;
+  gap: 1.25rem;
+  margin: 1rem 0 1.5rem;
+}
+.builder-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.builder-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.builder-form input,
+.builder-form select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  outline: none;
+}
+.builder-form input:focus,
+.builder-form select:focus { border-color: var(--accent); }
+.copy-yaml {
+  margin: 0.75rem 1rem 1rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.copy-yaml:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Checkpoints / quiz ─── */
+.checkpoint {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent2);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+.checkpoint h4 {
+  font-size: 0.95rem;
+  color: var(--accent2);
+  margin-bottom: 0.5rem;
+}
+.checkpoint > p:first-of-type { color: var(--text); font-weight: 500; }
+.quiz-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+.quiz-opt {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.45rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.quiz-opt:hover { border-color: var(--accent); }
+.quiz-opt.correct {
+  background: rgba(45,212,191,0.12);
+  border-color: var(--positive);
+  color: var(--positive);
+}
+.quiz-opt.wrong {
+  background: rgba(248,113,113,0.12);
+  border-color: var(--negative);
+  color: var(--negative);
+}
+.quiz-result {
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-height: 1.4em;
+  margin-top: 0.5rem;
+}
+
+/* ─── Steps list ─── */
+.steps-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0 1.5rem;
+}
+.steps-list li { margin-bottom: 0.6rem; color: var(--text-secondary); }
+.steps-list strong { color: var(--text); }
+
+/* ─── Support box ─── */
+.support-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+  margin-top: 2.5rem;
+}
+.support-box h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+}
+.support-box p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  max-width: 460px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.bmc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #FFDD00;
+  color: #1a1a1a;
+  text-decoration: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.bmc-btn:hover { opacity: 0.88; transform: translateY(-1px); color: #1a1a1a; }
+
+/* ─── Footer ─── */
+footer {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border-light);
+}
+footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+footer a:hover { color: var(--accent-hover); }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--surface-hover); }
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .top-nav { padding: 0.75rem 1rem; }
+  .nav-links .hide-sm { display: none; }
+  .page-header { padding: 2rem 1rem 1.5rem; }
+  .pipeline { top: 56px; gap: 0.15rem; padding: 0.75rem 0.5rem; }
+  .step-btn { padding: 0.35rem 0.65rem; font-size: 0.75rem; }
+  .main { padding: 1rem 1rem 2rem; }
+  .content-section { scroll-margin-top: 110px; }
+  .yaml-builder { grid-template-columns: 1fr; }
+  .engine-diagram { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+  .terminal-controls { justify-content: center; }
+}
+
+  </style>
+</head>
+<body>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="top-nav">
+  <a href="../" class="nav-brand">
+    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-text">Deep Dive From Scratch</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="../" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:0.3rem">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>Home
+      </a>
+      <a href="../about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+    <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ HEADER ═══ -->
+<header class="page-header">
+  <div class="hero-tag">DevOps (Development and Operations) · From Scratch</div>
+  <h1>Kubernetes & Containers from Scratch</h1>
+  <p class="subtitle">Docker, Podman, and kubectl side-by-side. Build an image, spin up a local cluster, and deploy your first app — all commands interactive.</p>
+  <div class="progress-tracker" id="progress-tracker" aria-label="Section progress"></div>
+</header>
+
+<!-- ═══ SECTION NAV ═══ -->
+<nav class="pipeline" id="pipeline">
+  <a class="step-btn active" href="#containers-101">Containers 101</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#docker-vs-podman">Docker vs Podman</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#build-run">Build &amp; Run</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#kubernetes-101">Kubernetes 101</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#local-cluster">Local Cluster</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#end-to-end">End-to-End Deploy</a>
+  <span class="arrow">→</span>
+  <a class="step-btn" href="#cleanup">Cleanup</a>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 1 — Containers 101
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="containers-101">
+  <h2>Containers 101</h2>
+  <p class="lead">
+    A <strong>container</strong> packages your application with everything it needs — code, runtime, libraries, and config — so it runs the same way on your laptop and in production.
+  </p>
+
+  <div class="two-col">
+    <div class="explain-card">
+      <h3>Why containers beat virtual machines (VMs)</h3>
+      <p><strong>Virtual machines</strong> each run a full guest operating system (OS) on top of a hypervisor. That means heavy disk usage, slow boot times, and a big resource tax.</p>
+      <p><strong>Containers</strong> share the host operating system (OS) kernel and isolate processes using Linux features like cgroups and namespaces. They are lightweight, fast, and portable.</p>
+    </div>
+    <div class="explain-card">
+      <h3>Key container concepts</h3>
+      <ul>
+        <li><strong>Image</strong> — a read-only template with layers.</li>
+        <li><strong>Container</strong> — a runnable instance of an image.</li>
+        <li><strong>Registry</strong> — a store for images (Docker Hub, Quay, etc.).</li>
+        <li><strong>Open Container Initiative (OCI)</strong> — the open standard that makes Docker and Podman images compatible.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Container vs Virtual Machine</h3>
+  <div class="diagram-wrap" id="vm-vs-container">
+    <svg viewBox="0 0 560 260" aria-label="Container versus virtual machine (VM) architecture diagram">
+      <!-- VM stack -->
+      <g id="vm-stack" class="diagram-group" data-info="virtual machines (VMs) carry a full guest operating system (OS) for every app, which increases overhead and boot time.">
+        <rect x="20" y="20" width="240" height="220" rx="10" class="diagram-box host"/>
+        <text x="140" y="45" text-anchor="middle" class="diagram-label">Traditional VM</text>
+        <rect x="40" y="60" width="200" height="30" rx="6" class="diagram-box app"/>
+        <text x="140" y="80" text-anchor="middle" class="diagram-label small">App + Libs</text>
+        <rect x="40" y="95" width="200" height="40" rx="6" class="diagram-box os"/>
+        <text x="140" y="120" text-anchor="middle" class="diagram-label small">Guest OS</text>
+        <rect x="40" y="140" width="200" height="40" rx="6" class="diagram-box hypervisor"/>
+        <text x="140" y="165" text-anchor="middle" class="diagram-label small">Hypervisor</text>
+        <rect x="40" y="185" width="200" height="40" rx="6" class="diagram-box hardware"/>
+        <text x="140" y="210" text-anchor="middle" class="diagram-label small">Host Hardware</text>
+      </g>
+      <!-- Container stack -->
+      <g id="container-stack" class="diagram-group" data-info="Containers share the host operating system (OS) kernel and run isolated processes directly on it.">
+        <rect x="300" y="20" width="240" height="220" rx="10" class="diagram-box host"/>
+        <text x="420" y="45" text-anchor="middle" class="diagram-label">Container</text>
+        <rect x="320" y="60" width="95" height="45" rx="6" class="diagram-box app"/>
+        <text x="367" y="87" text-anchor="middle" class="diagram-label small">App A</text>
+        <rect x="425" y="60" width="95" height="45" rx="6" class="diagram-box app-alt"/>
+        <text x="472" y="87" text-anchor="middle" class="diagram-label small">App B</text>
+        <rect x="320" y="112" width="200" height="40" rx="6" class="diagram-box runtime"/>
+        <text x="420" y="137" text-anchor="middle" class="diagram-label small">Container Runtime</text>
+        <rect x="320" y="158" width="200" height="40" rx="6" class="diagram-box os"/>
+        <text x="420" y="183" text-anchor="middle" class="diagram-label small">Host OS Kernel</text>
+        <rect x="320" y="203" width="200" height="30" rx="6" class="diagram-box hardware"/>
+        <text x="420" y="223" text-anchor="middle" class="diagram-label small">Host Hardware</text>
+      </g>
+    </svg>
+    <p class="diagram-caption" id="vm-caption">Hover a box to see what each layer does.</p>
+  </div>
+
+  <div class="checkpoint" id="checkpoint-1">
+    <h4>Checkpoint 1</h4>
+    <p>What is the main reason containers are lighter than virtual machines (VMs)?</p>
+    <div class="quiz-options">
+      <button class="quiz-opt" data-q="1" data-idx="0" data-correct="false">They run on faster hardware</button>
+      <button class="quiz-opt" data-q="1" data-idx="1" data-correct="true">They share the host operating system (OS) kernel</button>
+      <button class="quiz-opt" data-q="1" data-idx="2" data-correct="false">They do not need a filesystem</button>
+    </div>
+    <p class="quiz-result" id="quiz-result-1"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 2 — Docker vs Podman
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="docker-vs-podman">
+  <h2>Docker vs Podman</h2>
+  <p class="lead">
+    Both Docker and Podman build and run <strong>Open Container Initiative (OCI)</strong>-compliant images. The biggest difference is architectural: Docker uses a central daemon; Podman is daemonless and rootless by default.
+  </p>
+
+  <div class="engine-diagram">
+    <div class="engine-card">
+      <h3>Docker Engine</h3>
+      <svg viewBox="0 0 260 200" aria-label="Docker daemon architecture">
+        <!-- daemon on top -->
+        <rect x="55" y="15" width="150" height="50" rx="8" class="diagram-box runtime"/>
+        <text x="130" y="38" text-anchor="middle" class="diagram-label">dockerd (daemon)</text>
+        <text x="130" y="55" text-anchor="middle" class="diagram-label xsmall">runs as root</text>
+        <!-- connection to containers -->
+        <line x1="130" y1="65" x2="130" y2="95" class="diagram-line"/>
+        <!-- three non-overlapping containers -->
+        <rect x="20" y="100" width="65" height="40" rx="6" class="diagram-box app"/>
+        <text x="52" y="125" text-anchor="middle" class="diagram-label small">Container</text>
+        <rect x="97" y="100" width="65" height="40" rx="6" class="diagram-box app-alt" style="opacity:.9"/>
+        <text x="130" y="125" text-anchor="middle" class="diagram-label small">Container</text>
+        <rect x="175" y="100" width="65" height="40" rx="6" class="diagram-box app" style="opacity:.8"/>
+        <text x="207" y="125" text-anchor="middle" class="diagram-label small">Container</text>
+        <text x="130" y="175" text-anchor="middle" class="diagram-label xsmall">CLI talks to the daemon via socket</text>
+      </svg>
+    </div>
+    <div class="engine-card">
+      <h3>Podman Engine</h3>
+      <svg viewBox="0 0 260 200" aria-label="Podman daemonless architecture">
+        <!-- podman CLI parent on the left -->
+        <rect x="20" y="70" width="90" height="50" rx="8" class="diagram-box runtime"/>
+        <text x="65" y="95" text-anchor="middle" class="diagram-label small">podman CLI</text>
+        <text x="65" y="112" text-anchor="middle" class="diagram-label xsmall">parent process</text>
+        <!-- three child containers on the right, no overlap -->
+        <rect x="140" y="20" width="95" height="40" rx="6" class="diagram-box app"/>
+        <text x="187" y="42" text-anchor="middle" class="diagram-label small">Container</text>
+        <text x="187" y="55" text-anchor="middle" class="diagram-label xsmall">child process</text>
+        <rect x="140" y="75" width="95" height="40" rx="6" class="diagram-box app-alt" style="opacity:.9"/>
+        <text x="187" y="100" text-anchor="middle" class="diagram-label small">Container</text>
+        <rect x="140" y="130" width="95" height="40" rx="6" class="diagram-box app" style="opacity:.8"/>
+        <text x="187" y="155" text-anchor="middle" class="diagram-label small">Container</text>
+        <!-- lines from CLI to each container -->
+        <line x1="110" y1="82" x2="140" y2="40" class="diagram-line"/>
+        <line x1="110" y1="95" x2="140" y2="95" class="diagram-line"/>
+        <line x1="110" y1="108" x2="140" y2="150" class="diagram-line"/>
+        <text x="130" y="190" text-anchor="middle" class="diagram-label xsmall">fork/exec model, rootless possible</text>
+      </svg>
+    </div>
+  </div>
+
+  <table class="compare-table">
+    <thead>
+      <tr><th>Feature</th><th>Docker</th><th>Podman</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Daemon</td><td>Yes — <code>dockerd</code></td><td>No — fork/exec directly</td></tr>
+      <tr><td>Rootless</td><td>Possible with rootless mode</td><td>Default and mature</td></tr>
+      <tr><td>command-line interface (CLI) compatibility</td><td>Original</td><td>Drop-in replacement for most workflows</td></tr>
+      <tr><td>Open Container Initiative (OCI) images</td><td>Fully compatible</td><td>Fully compatible</td></tr>
+      <tr><td>Swarm/orchestration</td><td>Built-in Docker Swarm</td><td>Uses Kubernetes pods</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 3 — Build & Run
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="build-run">
+  <h2>Build &amp; Run a Container</h2>
+  <p class="lead">
+    You describe an image in a <code>Dockerfile</code> or <code>Containerfile</code>, build it into an image, then run it as a container.
+  </p>
+
+  <div class="two-col">
+    <div class="code-file">
+      <div class="code-header">Dockerfile</div>
+      <pre><code>FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]</code></pre>
+    </div>
+    <div class="code-file">
+      <div class="code-header">Containerfile (Podman)</div>
+      <pre><code>FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]</code></pre>
+    </div>
+  </div>
+
+  <p>The two files look identical because they both follow the Open Container Initiative (OCI) image format. Podman prefers the name <code>Containerfile</code>, but it can also read a <code>Dockerfile</code>.</p>
+
+  <h3>Interactive Terminal</h3>
+  <p class="desc">Click <strong>Next</strong> to step through building and running an image. Toggle between Docker and Podman to compare commands.</p>
+
+  <div class="terminal-widget" id="build-run-terminal">
+    <div class="terminal-tabs">
+      <button class="term-tab active" data-runtime="docker">Docker</button>
+      <button class="term-tab" data-runtime="podman">Podman</button>
+    </div>
+    <div class="terminal-screen" id="build-run-screen">
+      <div class="term-line"><span class="prompt">$</span> Ready to build.</div>
+    </div>
+    <div class="terminal-controls">
+      <button id="br-prev">← Previous</button>
+      <button id="br-next">Next →</button>
+      <button id="br-copy">Copy command</button>
+      <button id="br-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="checkpoint" id="checkpoint-2">
+    <h4>Checkpoint 2</h4>
+    <p>Which file name does Podman prefer by convention?</p>
+    <div class="quiz-options">
+      <button class="quiz-opt" data-q="2" data-idx="0" data-correct="false">Dockerfile</button>
+      <button class="quiz-opt" data-q="2" data-idx="1" data-correct="true">Containerfile</button>
+      <button class="quiz-opt" data-q="2" data-idx="2" data-correct="false">Podmanfile</button>
+    </div>
+    <p class="quiz-result" id="quiz-result-2"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 4 — Kubernetes 101
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="kubernetes-101">
+  <h2>Kubernetes 101</h2>
+  <p class="lead">
+    Kubernetes (often shortened to <strong>K8s</strong>, short for Kubernetes) is a container orchestrator. You tell it the desired state of your app; Kubernetes works continuously to keep reality matching that state.
+  </p>
+
+  <div class="diagram-wrap" id="k8s-arch">
+    <svg viewBox="0 0 640 240" aria-label="Kubernetes control plane and worker node architecture">
+      <g class="diagram-group" data-info="The control plane stores desired state and makes global decisions. The API Server (Application Programming Interface Server) is its front door.">
+        <rect x="20" y="20" width="280" height="200" rx="10" class="diagram-box control-plane"/>
+        <text x="160" y="45" text-anchor="middle" class="diagram-label">Control Plane</text>
+        <rect x="40" y="60" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="95" y="88" text-anchor="middle" class="diagram-label small">API Server</text>
+        <rect x="170" y="60" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="225" y="88" text-anchor="middle" class="diagram-label small">etcd</text>
+        <rect x="40" y="120" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="95" y="148" text-anchor="middle" class="diagram-label small">Scheduler</text>
+        <rect x="170" y="120" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="225" y="148" text-anchor="middle" class="diagram-label small">Controller Mgr</text>
+      </g>
+      <g class="diagram-group" data-info="Worker nodes run the actual containers and report status back to the control plane.">
+        <rect x="340" y="20" width="280" height="200" rx="10" class="diagram-box worker"/>
+        <text x="480" y="45" text-anchor="middle" class="diagram-label">Worker Node</text>
+        <rect x="360" y="60" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="415" y="88" text-anchor="middle" class="diagram-label small">kubelet</text>
+        <rect x="490" y="60" width="110" height="45" rx="6" class="diagram-box component"/>
+        <text x="545" y="88" text-anchor="middle" class="diagram-label small">kube-proxy</text>
+        <rect x="360" y="120" width="110" height="45" rx="6" class="diagram-box runtime"/>
+        <text x="415" y="148" text-anchor="middle" class="diagram-label small">Container runtime</text>
+        <rect x="490" y="120" width="110" height="45" rx="6" class="diagram-box app"/>
+        <text x="545" y="148" text-anchor="middle" class="diagram-label small">Pod</text>
+      </g>
+      <line x1="300" y1="120" x2="340" y2="120" class="diagram-line" stroke-dasharray="5,4"/>
+    </svg>
+    <p class="diagram-caption" id="k8s-caption">Hover a component to learn its role.</p>
+  </div>
+
+  <div class="two-col">
+    <div class="explain-card">
+      <h3>Core resources</h3>
+      <ul>
+        <li><strong>Pod</strong> — the smallest deployable unit; usually one main container.</li>
+        <li><strong>Deployment</strong> — manages a set of identical Pods, handles rolling updates and scaling.</li>
+        <li><strong>Service</strong> — stable networking and load balancing across Pods.</li>
+        <li><strong>Namespace</strong> — a scope for resources (dev, prod, etc.).</li>
+      </ul>
+    </div>
+    <div class="explain-card">
+      <h3>The kubectl mental model</h3>
+      <p><code>kubectl</code> is your remote control for the cluster Application Programming Interface (API) server. You write <strong>declarative</strong> YAML (YAML Ain't Markup Language) files and apply them, then use <code>kubectl get</code> / <code>kubectl describe</code> to inspect the result.</p>
+    </div>
+  </div>
+
+  <h3>From Dockerfile to Service</h3>
+  <div class="flowchart" id="flowchart">
+    <button class="flow-node" data-step="dockerfile">Dockerfile</button>
+    <span class="flow-arrow">→</span>
+    <button class="flow-node" data-step="image">Image</button>
+    <span class="flow-arrow">→</span>
+    <button class="flow-node" data-step="container">Container</button>
+    <span class="flow-arrow">→</span>
+    <button class="flow-node" data-step="pod">Pod</button>
+    <span class="flow-arrow">→</span>
+    <button class="flow-node" data-step="deployment">Deployment</button>
+    <span class="flow-arrow">→</span>
+    <button class="flow-node" data-step="service">Service</button>
+  </div>
+  <div class="flow-detail" id="flow-detail">
+    <p>Click any step above to learn what happens at that layer.</p>
+  </div>
+
+  <div class="checkpoint" id="checkpoint-3">
+    <h4>Checkpoint 3</h4>
+    <p>What is the smallest deployable unit in Kubernetes?</p>
+    <div class="quiz-options">
+      <button class="quiz-opt" data-q="3" data-idx="0" data-correct="false">Deployment</button>
+      <button class="quiz-opt" data-q="3" data-idx="1" data-correct="true">Pod</button>
+      <button class="quiz-opt" data-q="3" data-idx="2" data-correct="false">Node</button>
+    </div>
+    <p class="quiz-result" id="quiz-result-3"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 5 — Local Cluster
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="local-cluster">
+  <h2>Local Cluster Setup</h2>
+  <p class="lead">
+    Running Kubernetes on your laptop is the fastest way to learn. <strong>kind</strong> (Kubernetes in Docker) and <strong>minikube</strong> are the two most popular tools.
+  </p>
+
+  <div class="two-col">
+    <div class="explain-card">
+      <h3>kind</h3>
+      <p>Runs Kubernetes control-plane nodes as Docker containers. Great for continuous integration (CI) and multi-node testing.</p>
+      <ul>
+        <li>Needs Docker installed</li>
+        <li>Fast cluster creation</li>
+        <li>Easy multi-node clusters</li>
+      </ul>
+    </div>
+    <div class="explain-card">
+      <h3>minikube</h3>
+      <p>Runs a single-node or multi-node cluster in a virtual machine (VM) or container. Lots of built-in addons.</p>
+      <ul>
+        <li>Can use Docker, Podman, Hyper-V, VirtualBox, etc.</li>
+        <li>Driver-agnostic</li>
+        <li>Great for beginners</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Create a cluster</h3>
+  <div class="terminal-tabs">
+    <button class="term-tab active" data-cluster="kind">kind</button>
+    <button class="term-tab" data-cluster="minikube">minikube</button>
+  </div>
+  <div class="terminal-widget" id="cluster-terminal">
+    <div class="terminal-screen" id="cluster-screen">
+      <div class="term-line"><span class="prompt">$</span> Choose a tab and step through.</div>
+    </div>
+    <div class="terminal-controls">
+      <button id="cluster-prev">← Previous</button>
+      <button id="cluster-next">Next →</button>
+      <button id="cluster-copy">Copy command</button>
+      <button id="cluster-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="checkpoint" id="checkpoint-4">
+    <h4>Checkpoint 4</h4>
+    <p>Which tool runs Kubernetes nodes as Docker containers?</p>
+    <div class="quiz-options">
+      <button class="quiz-opt" data-q="4" data-idx="0" data-correct="true">kind</button>
+      <button class="quiz-opt" data-q="4" data-idx="1" data-correct="false">minikube</button>
+      <button class="quiz-opt" data-q="4" data-idx="2" data-correct="false">helm</button>
+    </div>
+    <p class="quiz-result" id="quiz-result-4"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 6 — End-to-End Deploy
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="end-to-end">
+  <h2>End-to-End Deploy</h2>
+  <p class="lead">
+    Build your image, load or push it into the cluster, then describe the desired state with YAML (YAML Ain't Markup Language) and let Kubernetes reconcile it.
+  </p>
+
+  <h3>YAML (YAML Ain't Markup Language) Builder</h3>
+  <p class="desc">Fill in the basics and watch the Deployment + Service YAML (YAML Ain't Markup Language) update live.</p>
+  <div class="yaml-builder">
+    <div class="builder-form">
+      <label>
+        <span>Image</span>
+        <input type="text" id="yb-image" value="my-app:v1" />
+      </label>
+      <label>
+        <span>Replicas</span>
+        <input type="number" id="yb-replicas" value="2" min="1" max="10" />
+      </label>
+      <label>
+        <span>Container port</span>
+        <input type="number" id="yb-port" value="3000" min="1" max="65535" />
+      </label>
+      <label>
+        <span>Service type</span>
+        <select id="yb-type">
+          <option value="ClusterIP">ClusterIP</option>
+          <option value="NodePort">NodePort</option>
+          <option value="LoadBalancer">LoadBalancer</option>
+        </select>
+      </label>
+    </div>
+    <div class="code-file">
+      <div class="code-header">generated-app.yaml</div>
+      <pre><code id="yb-output"></code></pre>
+      <button class="copy-yaml" id="yb-copy">Copy YAML (YAML Ain't Markup Language)</button>
+    </div>
+  </div>
+
+  <h3>Deploy flow</h3>
+  <div class="terminal-widget" id="deploy-terminal">
+    <div class="terminal-screen" id="deploy-screen">
+      <div class="term-line"><span class="prompt">$</span> Step through a full deployment.</div>
+    </div>
+    <div class="terminal-controls">
+      <button id="deploy-prev">← Previous</button>
+      <button id="deploy-next">Next →</button>
+      <button id="deploy-copy">Copy command</button>
+      <button id="deploy-reset">Reset</button>
+    </div>
+  </div>
+
+  <h3>What happens under the hood</h3>
+  <ol class="steps-list">
+    <li><strong>Build</strong> — Docker/Podman creates image layers and tags the result.</li>
+    <li><strong>Load</strong> — <code>kind load docker-image</code> or <code>minikube image load</code> puts the image inside the cluster.</li>
+    <li><strong>Apply</strong> — <code>kubectl apply -f app.yaml</code> sends desired state to the Application Programming Interface (API) server.</li>
+    <li><strong>Schedule</strong> — the scheduler picks a node; the kubelet starts the container.</li>
+    <li><strong>Expose</strong> — the Service gives Pods a stable Internet Protocol (IP) address and port.</li>
+    <li><strong>Access</strong> — <code>kubectl port-forward</code> lets you reach the app from localhost.</li>
+  </ol>
+
+  <div class="checkpoint" id="checkpoint-5">
+    <h4>Checkpoint 5</h4>
+    <p>Which command sends your YAML (YAML Ain't Markup Language) to the cluster?</p>
+    <div class="quiz-options">
+      <button class="quiz-opt" data-q="5" data-idx="0" data-correct="false">kubectl run</button>
+      <button class="quiz-opt" data-q="5" data-idx="1" data-correct="true">kubectl apply</button>
+      <button class="quiz-opt" data-q="5" data-idx="2" data-correct="false">kubectl create namespace</button>
+    </div>
+    <p class="quiz-result" id="quiz-result-5"></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 7 — Cleanup
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="content-section" id="cleanup">
+  <h2>Cleanup</h2>
+  <p class="lead">
+    Clean up resources in reverse order: delete Kubernetes resources first, then the cluster, then local images.
+  </p>
+
+  <div class="terminal-widget" id="cleanup-terminal">
+    <div class="terminal-screen" id="cleanup-screen">
+      <div class="term-line"><span class="prompt">$</span> Cleanup commands.</div>
+    </div>
+    <div class="terminal-controls">
+      <button id="cleanup-prev">← Previous</button>
+      <button id="cleanup-next">Next →</button>
+      <button id="cleanup-copy">Copy command</button>
+      <button id="cleanup-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="support-box">
+    <h2>☕ Support this blog</h2>
+    <p>All content is free and open source. If this guide helped you understand containers or Kubernetes, consider buying me a coffee — it keeps the deep dives coming!</p>
+    <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="bmc-btn">☕ Buy me a coffee</a>
+  </div>
+</section>
+
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <p>© 2026 Deep Dive From Scratch · Built with plain HTML (HyperText Markup Language), CSS (Cascading Style Sheets), and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+</footer>
+
+<script>
+/* ============================================================
+   Kubernetes & Containers Deep Dive — interactive logic
+   Vanilla JS; no external dependencies.
+   ============================================================ */
+
+/* ─────────────────────────────────────────────────────────────
+   Utilities
+   ───────────────────────────────────────────────────────────── */
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function copyToClipboard(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (btn) {
+      const old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = old; }, 1200);
+    }
+  } catch (e) {
+    if (btn) btn.textContent = 'Copy failed';
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Terminal simulator
+   ───────────────────────────────────────────────────────────── */
+function Terminal(widgetId, steps) {
+  const widget = $('#' + widgetId);
+  if (!widget) return;
+  const screen = widget.querySelector('.terminal-screen');
+  const prevBtn = widget.querySelector('[id$="-prev"]');
+  const nextBtn = widget.querySelector('[id$="-next"]');
+  const copyBtn = widget.querySelector('[id$="-copy"]');
+  const resetBtn = widget.querySelector('[id$="-reset"]');
+
+  let index = 0;
+  let runtime = 'docker';
+  let cluster = 'kind';
+
+  function commandText(step) {
+    return step.command[runtime] || step.command;
+  }
+
+  function render() {
+    screen.innerHTML = '';
+    const step = steps[index];
+    const cmd = commandText(step);
+    addLine(cmd, 'command');
+    if (step.output) addLine(step.output, step.outputClass || 'output');
+    if (prevBtn) prevBtn.disabled = index === 0;
+    if (nextBtn) nextBtn.disabled = index === steps.length - 1;
+  }
+
+  function addLine(text, cls) {
+    const div = document.createElement('div');
+    div.className = 'term-line ' + (cls || '');
+    if (cls === 'command') {
+      div.innerHTML = '<span class="prompt">$</span> ' + escapeHtml(text);
+    } else {
+      div.textContent = text;
+    }
+    screen.appendChild(div);
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  function typeCommand(text) {
+    screen.innerHTML = '';
+    const line = document.createElement('div');
+    line.className = 'term-line command';
+    line.innerHTML = '<span class="prompt">$</span> ';
+    screen.appendChild(line);
+    const span = document.createElement('span');
+    line.appendChild(span);
+
+    let i = 0;
+    function next() {
+      if (i < text.length) {
+        span.textContent += text[i];
+        i++;
+        screen.scrollTop = screen.scrollHeight;
+        setTimeout(next, 18);
+      } else if (steps[index].output) {
+        setTimeout(function() {
+          addLine(steps[index].output, steps[index].outputClass || 'output');
+        }, 180);
+      }
+    }
+    next();
+  }
+
+  function goNext() {
+    if (index < steps.length - 1) {
+      index++;
+      typeCommand(commandText(steps[index]));
+    }
+  }
+
+  function goPrev() {
+    if (index > 0) {
+      index--;
+      render();
+    }
+  }
+
+  function reset() {
+    index = 0;
+    render();
+  }
+
+  if (nextBtn) nextBtn.addEventListener('click', goNext);
+  if (prevBtn) prevBtn.addEventListener('click', goPrev);
+  if (resetBtn) resetBtn.addEventListener('click', reset);
+  if (copyBtn) copyBtn.addEventListener('click', function() {
+    copyToClipboard(commandText(steps[index]), copyBtn);
+  });
+
+  return {
+    setRuntime: function(r) { runtime = r; render(); },
+    setCluster: function(c) { cluster = c; render(); },
+    getRuntime: function() { return runtime; },
+    getCluster: function() { return cluster; },
+    render: render,
+    steps: steps
+  };
+}
+
+/* Build & run steps */
+const buildRunSteps = [
+  {
+    command: {
+      docker: 'docker build -t my-app:v1 .',
+      podman: 'podman build -t my-app:v1 .'
+    },
+    output: 'Successfully built image my-app:v1',
+    outputClass: 'success'
+  },
+  {
+    command: {
+      docker: 'docker images | grep my-app',
+      podman: 'podman images | grep my-app'
+    },
+    output: 'my-app   v1   4a2b8c9d1e3f   12 seconds ago   142MB',
+    outputClass: 'output'
+  },
+  {
+    command: {
+      docker: 'docker run -d -p 3000:3000 --name my-app my-app:v1',
+      podman: 'podman run -d -p 3000:3000 --name my-app my-app:v1'
+    },
+    output: '3f8a9c2e1d4b2c6a7e5f8d9c0a1b2c3d',
+    outputClass: 'success'
+  },
+  {
+    command: {
+      docker: 'docker ps',
+      podman: 'podman ps'
+    },
+    output: 'CONTAINER ID   IMAGE        STATUS          PORTS\n3f8a9c2e1d4b   my-app:v1    Up 6 seconds    0.0.0.0:3000->3000',
+    outputClass: 'output'
+  },
+  {
+    command: {
+      docker: 'docker stop my-app',
+      podman: 'podman stop my-app'
+    },
+    output: 'my-app',
+    outputClass: 'output'
+  }
+];
+
+/* Local cluster steps */
+const kindSteps = [
+  { command: 'kind create cluster --name demo', output: 'Creating cluster "demo" ... ✓', outputClass: 'success' },
+  { command: 'kubectl cluster-info --context kind-demo', output: 'Kubernetes control plane is running at https://127.0.0.1:12345', outputClass: 'output' },
+  { command: 'kubectl get nodes', output: 'NAME                 STATUS   ROLES           AGE   VERSION\ndemo-control-plane   Ready    control-plane   1m   v1.30.0', outputClass: 'output' },
+  { command: 'kubectl get ns', output: 'NAME              STATUS\ndefault           Active\nkube-system       Active', outputClass: 'output' }
+];
+const minikubeSteps = [
+  { command: 'minikube start --driver=docker', output: 'Done! kubectl is now configured to use "minikube"', outputClass: 'success' },
+  { command: 'kubectl cluster-info', output: 'Kubernetes control plane is running at https://192.168.49.2:8443', outputClass: 'output' },
+  { command: 'kubectl get nodes', output: 'NAME       STATUS   ROLES           AGE   VERSION\nminikube   Ready    control-plane   1m   v1.30.0', outputClass: 'output' },
+  { command: 'kubectl get ns', output: 'NAME              STATUS\ndefault           Active\nkube-system       Active', outputClass: 'output' }
+];
+
+/* End-to-end deploy steps */
+const deploySteps = [
+  { command: 'docker build -t my-app:v1 .', output: 'Successfully built my-app:v1', outputClass: 'success' },
+  { command: 'kind load docker-image my-app:v1 --name demo', output: 'Image loaded successfully', outputClass: 'success' },
+  { command: 'kubectl apply -f app.yaml', output: 'deployment.apps/my-app created\nservice/my-app-service created', outputClass: 'success' },
+  { command: 'kubectl get pods', output: 'NAME                     READY   STATUS    RESTARTS   AGE\nmy-app-5f4d9c7b8-x2z4a   1/1     Running   0          12s', outputClass: 'output' },
+  { command: 'kubectl get svc my-app-service', output: 'NAME             TYPE       CLUSTER-IP     PORT(S)\nmy-app-service   NodePort   10.96.123.45   3000:30080/TCP', outputClass: 'output' },
+  { command: 'kubectl port-forward svc/my-app-service 8080:3000', output: 'Forwarding from 127.0.0.1:8080 -> 3000', outputClass: 'success' }
+];
+
+/* Cleanup steps */
+const cleanupSteps = [
+  { command: 'kubectl delete -f app.yaml', output: 'deployment.apps "my-app" deleted\nservice "my-app-service" deleted', outputClass: 'output' },
+  { command: 'kind delete cluster --name demo', output: 'Deleting cluster "demo" ... ✓', outputClass: 'success' },
+  { command: 'docker rmi my-app:v1', output: 'Untagged: my-app:v1', outputClass: 'output' }
+];
+
+/* ─────────────────────────────────────────────────────────────
+   Initialize terminals
+   ───────────────────────────────────────────────────────────── */
+const buildRunTerm = Terminal('build-run-terminal', buildRunSteps);
+const clusterTerm = Terminal('cluster-terminal', kindSteps);
+const deployTerm = Terminal('deploy-terminal', deploySteps);
+const cleanupTerm = Terminal('cleanup-terminal', cleanupSteps);
+
+/* Cluster tab switching */
+$$('#local-cluster .term-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    $$('#local-cluster .term-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    const cluster = tab.dataset.cluster;
+    clusterTerm.setCluster(cluster);
+    clusterTerm.steps = cluster === 'kind' ? kindSteps : minikubeSteps;
+    clusterTerm.render();
+  });
+});
+
+/* Build/run runtime tab switching */
+$$('#build-run .term-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    $$('#build-run .term-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    buildRunTerm.setRuntime(tab.dataset.runtime);
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Diagram hover interactions
+   ───────────────────────────────────────────────────────────── */
+function setupDiagram(wrapperId, captionId) {
+  const wrapper = $('#' + wrapperId);
+  if (!wrapper) return;
+  const caption = $('#' + captionId);
+  const groups = wrapper.querySelectorAll('.diagram-group');
+  groups.forEach(function(g) {
+    g.addEventListener('mouseenter', function() {
+      if (caption && g.dataset.info) caption.textContent = g.dataset.info;
+    });
+    g.addEventListener('mouseleave', function() {
+      if (caption) caption.textContent = 'Hover a box to see what each layer does.';
+    });
+  });
+}
+setupDiagram('vm-vs-container', 'vm-caption');
+setupDiagram('k8s-arch', 'k8s-caption');
+
+/* ─────────────────────────────────────────────────────────────
+   Flowchart
+   ───────────────────────────────────────────────────────────── */
+const flowDetails = {
+  dockerfile: 'A <strong>Dockerfile</strong> is a recipe: it lists a base image, installs dependencies, copies code, exposes ports, and sets the startup command.',
+  image: 'An <strong>image</strong> is a read-only stack of layers created by building the Dockerfile. It is portable and can be shared via a registry.',
+  container: 'A <strong>container</strong> is a running instance of an image with its own filesystem, processes, and network namespace.',
+  pod: 'A <strong>Pod</strong> is the smallest Kubernetes object. It wraps one or more containers that share storage and networking.',
+  deployment: 'A <strong>Deployment</strong> manages a desired number of identical Pods, replacing failed ones and enabling rolling updates.',
+  service: 'A <strong>Service</strong> provides stable networking and load balances traffic across the Pods in a Deployment.'
+};
+
+const flowDetail = $('#flow-detail');
+$$('.flow-node').forEach(function(node) {
+  node.addEventListener('click', function() {
+    $$('.flow-node').forEach(function(n) { n.classList.remove('active'); });
+    node.classList.add('active');
+    const key = node.dataset.step;
+    if (flowDetail && flowDetails[key]) {
+      flowDetail.innerHTML = flowDetails[key];
+    }
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   YAML Builder
+   ───────────────────────────────────────────────────────────── */
+const ybImage = $('#yb-image');
+const ybReplicas = $('#yb-replicas');
+const ybPort = $('#yb-port');
+const ybType = $('#yb-type');
+const ybOutput = $('#yb-output');
+const ybCopy = $('#yb-copy');
+
+function generateYaml() {
+  const image = (ybImage && ybImage.value.trim()) || 'my-app:v1';
+  const replicas = (ybReplicas && parseInt(ybReplicas.value, 10)) || 1;
+  const port = (ybPort && parseInt(ybPort.value, 10)) || 3000;
+  const svcType = (ybType && ybType.value) || 'ClusterIP';
+  const svcPort = svcType === 'NodePort' ? 30080 : port;
+
+  const yaml =
+`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: ${replicas}
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: ${image}
+          ports:
+            - containerPort: ${port}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  type: ${svcType}
+  selector:
+    app: my-app
+  ports:
+    - port: ${port}
+      targetPort: ${port}${svcType === 'NodePort' ? '\n      nodePort: ' + svcPort : ''}`;
+
+  if (ybOutput) ybOutput.textContent = yaml;
+  return yaml;
+}
+
+if (ybImage) ybImage.addEventListener('input', generateYaml);
+if (ybReplicas) ybReplicas.addEventListener('input', generateYaml);
+if (ybPort) ybPort.addEventListener('input', generateYaml);
+if (ybType) ybType.addEventListener('change', generateYaml);
+if (ybCopy) ybCopy.addEventListener('click', function() { copyToClipboard(generateYaml(), ybCopy); });
+generateYaml();
+
+/* ─────────────────────────────────────────────────────────────
+   Quiz / Checkpoints
+   ───────────────────────────────────────────────────────────── */
+$$('.quiz-opt').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const q = btn.dataset.q;
+    const isCorrect = btn.dataset.correct === 'true';
+    const all = $$('.quiz-opt[data-q="' + q + '"]');
+    all.forEach(function(b) {
+      b.disabled = true;
+      if (b.dataset.correct === 'true') b.classList.add('correct');
+      else if (b === btn) b.classList.add('wrong');
+    });
+    const res = $('#quiz-result-' + q);
+    if (res) {
+      res.textContent = isCorrect
+        ? 'Correct!'
+        : 'Not quite — the correct answer is highlighted.';
+      res.style.color = isCorrect ? 'var(--positive)' : 'var(--negative)';
+    }
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Progress tracker & pipeline active state
+   ───────────────────────────────────────────────────────────── */
+const sections = $$('.content-section');
+const pipelineBtns = $$('.pipeline .step-btn');
+const progressTracker = $('#progress-tracker');
+
+if (progressTracker) {
+  sections.forEach(function(_, i) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot' + (i === 0 ? ' active' : '');
+    progressTracker.appendChild(dot);
+  });
+}
+
+function onScroll() {
+  const scrollY = window.scrollY + 160;
+  let active = 0;
+  sections.forEach(function(sec, i) {
+    if (scrollY >= sec.offsetTop) active = i;
+  });
+
+  pipelineBtns.forEach(function(btn, i) {
+    btn.classList.toggle('active', i === active);
+  });
+
+  const dots = $$('.progress-dot');
+  dots.forEach(function(dot, i) {
+    dot.classList.toggle('active', i === active);
+    dot.classList.toggle('seen', i <= active);
+  });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+/* ─────────────────────────────────────────────────────────────
+   Init terminals on load
+   ───────────────────────────────────────────────────────────── */
+if (buildRunTerm) buildRunTerm.render();
+if (clusterTerm) clusterTerm.render();
+if (deployTerm) deployTerm.render();
+if (cleanupTerm) cleanupTerm.render();
+
+</script>
+</body>
+</html>
