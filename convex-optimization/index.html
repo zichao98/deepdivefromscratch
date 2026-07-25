@@ -1,16 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Convex Optimization — Why It Matters in ML | Deep Dive From Scratch</title>
-  <meta name="description" content="An interactive guide to convex sets, Jensen's inequality, global minima, and optimization in machine learning.">
-  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/convex-optimization/"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><script src="../theme.js"></script><link rel="stylesheet" href="../style.css">
-  <style>body{background:var(--bg);color:var(--text)}.lesson{max-width:1100px;margin:auto;padding:3rem 1.25rem 5rem}.intro{max-width:780px;margin:2rem 0}.eyebrow{color:var(--accent2);font:700 .75rem Inter;letter-spacing:.12em;text-transform:uppercase}.intro h1{font-size:clamp(2.2rem,6vw,4.4rem);letter-spacing:-.06em;margin:.5rem 0 1rem}.intro p,.panel p{color:var(--text-secondary);line-height:1.7}.lab{display:grid;grid-template-columns:1.25fr .75fr;gap:1.25rem}.panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.25rem}.panel canvas{display:block;width:100%;aspect-ratio:1.4;background:#07111f;border-radius:12px}.switch{display:flex;gap:.5rem;flex-wrap:wrap}.switch button,.preset{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:.6rem .8rem;font:600 .84rem Inter;cursor:pointer}.switch .active{background:var(--accent2);color:#13071e;border-color:var(--accent2)}.control{margin:1.25rem 0}.control label{display:flex;justify-content:space-between;font-size:.9rem;font-weight:700}.control output{font-family:'JetBrains Mono';color:var(--accent2)}input{width:100%;accent-color:var(--accent2)}.readout{padding:1rem;background:var(--surface2);border-radius:12px;font-family:'JetBrains Mono';font-size:.85rem;line-height:1.8}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.25rem}.card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:1.1rem}.card h3{margin:.1rem 0 .6rem}.card p{color:var(--text-secondary);line-height:1.65;font-size:.9rem}.formula{color:var(--accent2);font-family:'JetBrains Mono';font-size:.87rem}@media(max-width:760px){.lab,.cards{grid-template-columns:1fr}.lesson{padding-top:1.5rem}}</style>
+  <meta name="description" content="Interactive step-by-step visualizer of convex functions, the chord inequality (Jensen's inequality), convex sets, global minima, strong convexity, and why ML relies on convex optimization." />
+  <meta name="keywords" content="convex optimization, convex function, convex set, Jensen inequality, chord test, global minimum, KKT, duality, machine learning, step by step, visualizer" />
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/convex-optimization/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Convex Optimization — Why It Matters in ML",
+    "description": "Interactive visualizer of convex functions, chord inequality, and global minima",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/convex-optimization/",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="../theme.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']], tags: 'none', packages: { '[+]': ['ams'] } },
+      options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
 </head>
 <body>
-<nav class="top-nav"><a href="../" class="nav-brand"><span class="nav-brand-icon">🏊</span><span class="nav-brand-text">Deep Dive From Scratch</span></a><div class="nav-right"><div class="nav-links"><a href="../">Home</a><a href="../#posts" class="hide-sm">Posts</a><a href="../about.html" class="hide-sm">About</a></div><button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">◐</button></div></nav>
-<main class="lesson"><section class="intro"><div class="eyebrow">Geometric intuition</div><h1>Convex Optimization<br>Why It Matters in ML</h1><p>Convexity turns optimization into a promise: every local minimum is global. Explore that promise using the chord test below.</p></section><section class="lab"><div class="panel"><canvas id="plot" width="780" height="520"></canvas></div><aside class="panel"><h2>Test the chord</h2><p>Pick a function, then move the two points. A convex function always stays at or below the line joining any two points.</p><div class="switch" id="functions"><button class="active" data-f="convex">Convex: x²</button><button data-f="nonconvex">Non-convex: x⁴ − x²</button></div><div class="control"><label>Left point x₁ <output id="aout">−1.40</output></label><input id="a" type="range" min="-2" max="2" step=".05" value="-1.4"></div><div class="control"><label>Right point x₂ <output id="bout">1.20</output></label><input id="b" type="range" min="-2" max="2" step=".05" value="1.2"></div><div class="control"><label>Mix λ <output id="lout">0.50</output></label><input id="lambda" type="range" min="0" max="1" step=".01" value=".5"></div><div class="readout" id="readout"></div></aside></section><section class="cards"><article class="card"><h3>1. Convex set</h3><p>A set is convex when the full line segment between every pair of its points stays inside the set.</p></article><article class="card"><h3>2. Convex function</h3><p>For all points and mixes, <span class="formula">f(λx₁+(1−λ)x₂) ≤ λf(x₁)+(1−λ)f(x₂)</span>.</p></article><article class="card"><h3>3. ML payoff</h3><p>Linear regression with squared loss is convex, so optimization has no bad local minima to trap us.</p></article></section></main>
-<script>
-const c=document.querySelector('#plot'),x=c.getContext('2d'),a=document.querySelector('#a'),b=document.querySelector('#b'),l=document.querySelector('#lambda');let kind='convex';const f=t=>kind==='convex'?t*t:t*t*t*t-t*t;const coord=(px,py)=>[55+(px+2.3)/4.6*(c.width-95),c.height-48-(py+1.2)/5.6*(c.height-85)];
-function draw(){const av=+a.value,bv=+b.value,lv=+l.value,m=lv*av+(1-lv)*bv,fa=f(av),fb=f(bv),fm=f(m),chord=lv*fa+(1-lv)*fb,ok=fm<=chord+1e-7;x.clearRect(0,0,c.width,c.height);x.fillStyle='#07111f';x.fillRect(0,0,c.width,c.height);x.strokeStyle='rgba(255,255,255,.16)';x.lineWidth=1;for(let i=-2;i<=2;i++){let p=coord(i,-1.2),q=coord(i,4.4);x.beginPath();x.moveTo(...p);x.lineTo(...q);x.stroke()}for(let i=-1;i<=4;i++){let p=coord(-2.3,i),q=coord(2.3,i);x.beginPath();x.moveTo(...p);x.lineTo(...q);x.stroke()}x.strokeStyle='#906bff';x.lineWidth=4;x.beginPath();for(let t=-2.2;t<=2.2;t+=.02){const p=coord(t,f(t));t===-2.2?x.moveTo(...p):x.lineTo(...p)}x.stroke();const pa=coord(av,fa),pb=coord(bv,fb),pm=coord(m,fm),pc=coord(m,chord);x.strokeStyle='#ffdd72';x.lineWidth=3;x.beginPath();x.moveTo(...pa);x.lineTo(...pb);x.stroke();for(const [p,color] of [[pa,'#72f4c7'],[pb,'#72f4c7'],[pm,'#ff7188'],[pc,'#ffdd72']]){x.fillStyle=color;x.beginPath();x.arc(...p,7,0,Math.PI*2);x.fill()}x.fillStyle='#d8e8ff';x.font='14px Inter';x.fillText('f(x)',16,25);x.fillText('x',c.width-23,c.height-24);document.querySelector('#aout').textContent=av.toFixed(2);document.querySelector('#bout').textContent=bv.toFixed(2);document.querySelector('#lout').textContent=lv.toFixed(2);document.querySelector('#readout').innerHTML=`xλ = ${m.toFixed(3)}<br>f(xλ) = ${fm.toFixed(3)}<br>chord value = ${chord.toFixed(3)}<br><strong style="color:${ok?'#72f4c7':'#ff7188'}">${ok?'Chord test passes':'Chord test fails'}</strong>`} [a,b,l].forEach(e=>e.oninput=draw);document.querySelector('#functions').onclick=e=>{if(!e.target.dataset.f)return;kind=e.target.dataset.f;document.querySelectorAll('#functions button').forEach(q=>q.classList.toggle('active',q===e.target));draw()};draw();
-</script></body></html>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="top-nav">
+  <a href="../" class="nav-brand">
+    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-text">Deep Dive From Scratch</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="../" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:0.3rem">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>Home
+      </a>
+      <a href="../#posts" class="hide-sm">Posts</a>
+      <a href="../about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+    <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<header>
+  <h1>Convex Optimization — Why It Matters in ML</h1>
+  <p class="subtitle">An interactive journey through convexity, the chord inequality, and why convex objectives guarantee a global minimum</p>
+</header>
+
+<nav class="pipeline">
+  <button class="step-btn active" data-step="0">1. Convexity</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="1">2. Chord Test</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="2">3. Convex Sets</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="3">4. Global Minimum</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="4">5. Condition Number</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="5">6. ML Applications</button>
+</nav>
+
+<!-- ═══════════════ STEP 0: CONVEXITY ═══════════════ -->
+<section class="step-panel active" id="step-0">
+  <h2>Step 1 — What is a Convex Function? <span class="badge">Definition</span></h2>
+  <p class="desc">A function is convex if the line segment between any two points on its graph lies above or on the graph. Switch between convex and non-convex examples to see the difference.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="convex-canvas" width="600" height="400"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span>f(x)</span>
+        <span>x</span>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Formal definition</h3>
+      <p>A function \(f: \mathbb{R}^n \to \mathbb{R}\) is <strong>convex</strong> if for all \(\mathbf{x}, \mathbf{y}\) and \(\lambda \in [0,1]\):</p>
+      <div class="formula-box">
+        \[ f(\lambda \mathbf{x} + (1-\lambda)\mathbf{y}) \leq \lambda f(\mathbf{x}) + (1-\lambda) f(\mathbf{y}) \]
+      </div>
+      <p>The right-hand side is the <strong>chord</strong> — the linear interpolation between the two points. Convexity demands the function always stays <strong>below</strong> this chord.</p>
+      <div class="fn-tabs">
+        <button class="fn-tab active" data-fn="convex">Convex: \(x^2\)</button>
+        <button class="fn-tab" data-fn="nonconvex">Non-convex: \(x^4 - x^2\)</button>
+      </div>
+      <p id="convex-status" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--positive);">This function IS convex ✓</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 1: CHORD TEST ═══════════════ -->
+<section class="step-panel" id="step-1">
+  <h2>Step 2 — The Chord Inequality (Jensen's Inequality) <span class="badge">Interactive test</span></h2>
+  <p class="desc">Move the sliders to place two points on the function and a mixture point between them. The chord test checks whether the function value at the mixture is below the linear interpolation.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="chord-canvas" width="600" height="400"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span>f(x)</span>
+        <span>x</span>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The chord test</h3>
+      <p>For points \(x_1\) and \(x_2\), the mixture point is:</p>
+      <div class="formula-box">
+        \[ x_\lambda = \lambda x_1 + (1-\lambda) x_2 \]
+      </div>
+      <p>The <strong>chord value</strong> at \(x_\lambda\) is the linear interpolation:</p>
+      <div class="formula-box">
+        \[ \text{chord} = \lambda f(x_1) + (1-\lambda) f(x_2) \]
+      </div>
+      <p>Convexity requires: \(f(x_\lambda) \leq \text{chord}\)</p>
+      <div class="slider-row">
+        <label for="chord-a">Point \(x_1\): <span id="chord-a-val" class="math-mono">−1.50</span></label>
+        <input type="range" id="chord-a" min="-2.5" max="2.5" step="0.05" value="-1.5" />
+      </div>
+      <div class="slider-row">
+        <label for="chord-b">Point \(x_2\): <span id="chord-b-val" class="math-mono">1.50</span></label>
+        <input type="range" id="chord-b" min="-2.5" max="2.5" step="0.05" value="1.5" />
+      </div>
+      <div class="slider-row">
+        <label for="chord-l">Mixture \(\lambda\): <span id="chord-l-val" class="math-mono">0.50</span></label>
+        <input type="range" id="chord-l" min="0" max="1" step="0.01" value="0.5" />
+      </div>
+      <div class="fn-tabs">
+        <button class="fn-tab active" data-fn2="convex">Convex: \(x^2\)</button>
+        <button class="fn-tab" data-fn2="nonconvex">Non-convex: \(x^4 - x^2\)</button>
+      </div>
+      <div class="readout-box" id="chord-readout"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 2: CONVEX SETS ═══════════════ -->
+<section class="step-panel" id="step-2">
+  <h2>Step 3 — Convex Sets <span class="badge">Geometric intuition</span></h2>
+  <p class="desc">A set is convex if the line segment between any two points in the set also lies entirely within the set. Click inside the canvas to add points — the convex hull is drawn automatically.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="set-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span>Convex hull visualization</span>
+        <span>Click to add points</span>
+      </div>
+      <div class="controls">
+        <button id="btn-set-clear">Clear Points</button>
+        <button id="btn-set-preset">Preset Shape</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Convex set definition</h3>
+      <p>A set \(\mathcal{C} \subseteq \mathbb{R}^n\) is <strong>convex</strong> if for all \(\mathbf{x}, \mathbf{y} \in \mathcal{C}\) and \(\lambda \in [0,1]\):</p>
+      <div class="formula-box">
+        \[ \lambda \mathbf{x} + (1-\lambda)\mathbf{y} \in \mathcal{C} \]
+      </div>
+      <p>The <strong>convex hull</strong> of a set of points is the smallest convex set containing all of them. It is formed by taking all possible line segments between the points.</p>
+      <p>The <span style="color:var(--accent2);font-weight:bold">teal shaded region</span> is the convex hull of your points. Any line segment between two points inside this region stays inside it.</p>
+      <p>👉 Click on the canvas to add points and watch the convex hull update.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 3: GLOBAL MINIMUM ═══════════════ -->
+<section class="step-panel" id="step-3">
+  <h2>Step 4 — Why Convexity Guarantees a Global Minimum <span class="badge">The key theorem</span></h2>
+  <p class="desc">For convex functions, every local minimum is a global minimum. For non-convex functions, gradient descent can get trapped in local minima. Compare the two cases interactively.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="minimum-canvas" width="600" height="400"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span>f(x)</span>
+        <span>x</span>
+      </div>
+      <div class="controls">
+        <button id="btn-min-convex" class="accent-btn">Show Convex</button>
+        <button id="btn-min-nonconvex">Show Non-Convex</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The guarantee</h3>
+      <p>For a <strong>convex</strong> function, if \(\nabla f(\mathbf{x}^*) = \mathbf{0}\), then \(\mathbf{x}^*\) is a <strong>global minimum</strong>. There are no local minima that are not global.</p>
+      <div class="formula-box">
+        \[ \nabla f(\mathbf{x}^*) = \mathbf{0} \implies f(\mathbf{x}^*) = \min_{\mathbf{x}} f(\mathbf{x}) \]
+      </div>
+      <p>For a <strong>non-convex</strong> function, a point with zero gradient could be a local minimum, a local maximum, or a saddle point. Gradient descent might converge to a <strong>bad</strong> local minimum.</p>
+      <p id="min-status" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--positive);">Convex: one global minimum at x = 0</p>
+      <p>This is why ML prefers convex loss functions — optimization is reliable and efficient.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 4: CONDITION NUMBER ═══════════════ -->
+<section class="step-panel" id="step-4">
+  <h2>Step 5 — Strong Convexity & the Condition Number <span class="badge">Convergence rate</span></h2>
+  <p class="desc">The condition number κ determines how "elliptical" the loss surface is. A high condition number means slow, oscillating convergence for gradient descent. Adjust κ and watch the effect.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="cond-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span>θ₁</span>
+        <span>θ₂</span>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Condition number</h3>
+      <p>For a quadratic loss \(L = \frac{1}{2}\theta_1^2 + \frac{\kappa}{2}\theta_2^2\), the <strong>condition number</strong> is \(\kappa\).</p>
+      <div class="formula-box">
+        \[ \kappa = \frac{\lambda_{\max}}{\lambda_{\min}} \]
+      </div>
+      <p>where \(\lambda_{\max}\) and \(\lambda_{\min}\) are the largest and smallest eigenvalues of the Hessian.</p>
+      <div class="slider-row">
+        <label for="cond-slider">Condition number κ: <span id="cond-val" class="math-mono">4.0</span></label>
+        <input type="range" id="cond-slider" min="1" max="50" step="0.5" value="4" />
+      </div>
+      <p id="cond-status" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent2);">κ = 4: mild oscillation</p>
+      <p><strong>κ = 1:</strong> perfectly circular — GD converges in one step.<br><strong>κ ≫ 1:</strong> highly elliptical — GD oscillates heavily and converges slowly.</p>
+      <p>This is why <strong>preconditioning</strong> and <strong>adaptive optimizers</strong> like Adam are so important in deep learning!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 5: ML APPLICATIONS ═══════════════ -->
+<section class="step-panel" id="step-5">
+  <h2>Step 6 — Convex Optimization in Machine Learning <span class="badge">Real applications</span></h2>
+  <p class="desc">Many core ML problems are convex optimization problems. Click on each card to see its loss function and why it is convex.</p>
+  <div class="info-cards">
+    <div class="info-card">
+      <h3>Linear Regression (OLS)</h3>
+      <p>The squared loss \(L = \|\mathbf{X}\boldsymbol{\beta} - \mathbf{y}\|^2\) is a convex quadratic in \(\boldsymbol{\beta}\). The Hessian \(\mathbf{X}^T\mathbf{X}\) is positive semi-definite, guaranteeing convexity.</p>
+      <div class="formula-box">
+        \[ \min_{\boldsymbol{\beta}} \|\mathbf{X}\boldsymbol{\beta} - \mathbf{y}\|^2 \]
+      </div>
+    </div>
+    <div class="info-card">
+      <h3>Logistic Regression</h3>
+      <p>The cross-entropy loss is convex in the weight parameters. The negative log-likelihood is a sum of convex log-sigmoid terms, and sums of convex functions are convex.</p>
+      <div class="formula-box">
+        \[ \min_{\mathbf{w}} -\sum_i \log \sigma(y_i \mathbf{w}^T \mathbf{x}_i) \]
+      </div>
+    </div>
+    <div class="info-card">
+      <h3>Support Vector Machine</h3>
+      <p>The SVM hinge loss with L2 regularization is a convex quadratic program. The dual problem is also convex, enabling efficient kernel methods.</p>
+      <div class="formula-box">
+        \[ \min_{\mathbf{w}} \frac{1}{2}\|\mathbf{w}\|^2 + C\sum_i \max(0, 1-y_i\mathbf{w}^T\mathbf{x}_i) \]
+      </div>
+    </div>
+    <div class="info-card">
+      <h3>LASSO Regression</h3>
+      <p>LASSO adds an L1 penalty to OLS. The L1 term is convex (but not smooth), making the overall problem convex. This promotes sparsity in the solution.</p>
+      <div class="formula-box">
+        \[ \min_{\boldsymbol{\beta}} \|\mathbf{X}\boldsymbol{\beta} - \mathbf{y}\|^2 + \lambda \|\boldsymbol{\beta}\|_1 \]
+      </div>
+    </div>
+    <div class="info-card">
+      <h3>Non-Convex: Neural Networks</h3>
+      <p>Deep neural networks have <strong>non-convex</strong> loss surfaces with many local minima and saddle points. This is why optimizers like Adam, with momentum and adaptive learning rates, are essential.</p>
+      <div class="formula-box">
+        \[ L(\boldsymbol{\theta}) \text{ is non-convex for deep nets} \]
+      </div>
+    </div>
+    <div class="info-card">
+      <h3>Why it matters</h3>
+      <p>For convex problems, we can prove convergence rates, guarantee global optima, and use efficient algorithms like interior point methods. For non-convex problems (deep learning), we rely on heuristics and hope for the best.</p>
+      <div class="formula-box">
+        \[ \text{Convex} \Rightarrow \text{guaranteed global minimum} \]
+        \[ \text{Non-convex} \Rightarrow \text{no guarantees} \]
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ NAVIGATION ═══ -->
+<div class="nav-controls">
+  <button id="btn-prev" disabled>← Previous</button>
+  <span id="step-indicator">Step 1 / 6</span>
+  <button id="btn-next">Next →</button>
+</div>
+
+<footer>
+  <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+</footer>
+
+<script src="convex-optimization.js?v=1"></script>
+
+</body>
+</html>

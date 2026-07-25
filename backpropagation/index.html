@@ -1,4 +1,297 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Backpropagation by Hand | Deep Dive From Scratch</title><meta name="description" content="Interactively calculate a neural network forward pass and backpropagation update by hand."><link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/backpropagation/"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><script src="../theme.js"></script><link rel="stylesheet" href="../style.css"><style>body{background:var(--bg);color:var(--text)}.lesson{max-width:1100px;margin:auto;padding:3rem 1.25rem 5rem}.intro{max-width:790px;margin:2rem 0}.eyebrow{color:var(--accent);font:700 .75rem Inter;letter-spacing:.12em;text-transform:uppercase}.intro h1{font-size:clamp(2.2rem,6vw,4.4rem);letter-spacing:-.06em;margin:.5rem 0 1rem}.intro p,.panel p{color:var(--text-secondary);line-height:1.7}.lab{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}.panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.25rem}.network{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;align-items:center;min-height:300px}.layer{text-align:center}.nodes{display:grid;gap:1rem;justify-items:center}.node{display:grid;place-items:center;width:70px;height:70px;border:2px solid var(--border);border-radius:50%;background:var(--surface2);font:700 .8rem 'JetBrains Mono'}.node.hot{border-color:var(--accent);box-shadow:0 0 25px color-mix(in srgb,var(--accent) 35%,transparent)}.layer small{display:block;color:var(--text-muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem}.control{margin:1rem 0}.control label{display:flex;justify-content:space-between;font-size:.88rem;font-weight:700}.control output{color:var(--accent);font-family:'JetBrains Mono'}input{width:100%;accent-color:var(--accent)}.action{background:var(--accent);border:0;border-radius:9px;padding:.7rem .9rem;color:#03151b;font:700 .85rem Inter;cursor:pointer}.math{background:var(--surface2);border-radius:12px;padding:1rem;font:500 .83rem/1.85 'JetBrains Mono';white-space:pre-line}.explain{margin-top:1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem}.explain code{color:var(--accent)}@media(max-width:760px){.lab{grid-template-columns:1fr}.lesson{padding-top:1.5rem}}</style></head>
-<body><nav class="top-nav"><a href="../" class="nav-brand"><span class="nav-brand-icon">🏊</span><span class="nav-brand-text">Deep Dive From Scratch</span></a><div class="nav-right"><div class="nav-links"><a href="../">Home</a><a href="../#posts" class="hide-sm">Posts</a><a href="../about.html" class="hide-sm">About</a></div><button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">◐</button></div></nav><main class="lesson"><section class="intro"><div class="eyebrow">Neural networks at the matrix level</div><h1>Backpropagation<br>by Hand</h1><p>Follow one training example through a tiny neural network. The forward pass makes a prediction; the backward pass assigns credit to every weight.</p></section><section class="lab"><div class="panel"><div class="network"><div class="layer"><small>Input</small><div class="nodes"><div class="node" id="in1">x₁</div><div class="node" id="in2">x₂</div></div></div><div class="layer"><small>Hidden · ReLU</small><div class="nodes"><div class="node hot" id="h1">h₁</div><div class="node hot" id="h2">h₂</div></div></div><div class="layer"><small>Output · σ</small><div class="nodes"><div class="node hot" id="out">ŷ</div></div></div></div><p>Values inside the nodes update after every slider movement. The demo uses a mean-squared-error loss for one example.</p></div><aside class="panel"><h2>One training example</h2><div class="control"><label>Input x₁ <output id="x1out">1.00</output></label><input id="x1" type="range" min="-2" max="2" value="1" step=".1"></div><div class="control"><label>Input x₂ <output id="x2out">0.50</output></label><input id="x2" type="range" min="-2" max="2" value=".5" step=".1"></div><div class="control"><label>Target y <output id="yout">1.00</output></label><input id="target" type="range" min="0" max="1" value="1" step=".1"></div><button class="action" id="learn">Apply one backprop update</button><h3>Live calculation</h3><div class="math" id="math"></div></aside></section><section class="explain"><h2>Chain rule, not magic</h2><p>Each backward signal is a derivative. At the output, compute <code>∂L/∂ŷ</code>; multiply by the sigmoid derivative to get <code>∂L/∂z</code>; then pass that signal backwards through each weight. A weight changes by <code>w ← w − α∂L/∂w</code>.</p></section></main><script>
-const $=s=>document.querySelector(s), inputs=['#x1','#x2','#target'].map($);let w={a:.8,b:-.4,c:.3,d:.9,e:1.1,f:-.7},lr=.18;const sig=z=>1/(1+Math.exp(-z)),relu=z=>Math.max(0,z);function calc(){let x1=+$('#x1').value,x2=+$('#x2').value,y=+$('#target').value,z1=x1*w.a+x2*w.b,z2=x1*w.c+x2*w.d,h1=relu(z1),h2=relu(z2),z3=h1*w.e+h2*w.f,p=sig(z3),L=.5*(p-y)**2;return{x1,x2,y,z1,z2,h1,h2,z3,p,L}}function render(){let q=calc();$('#x1out').textContent=q.x1.toFixed(1);$('#x2out').textContent=q.x2.toFixed(1);$('#yout').textContent=q.y.toFixed(1);$('#in1').textContent=`${q.x1.toFixed(2)}`;$('#in2').textContent=`${q.x2.toFixed(2)}`;$('#h1').textContent=`${q.h1.toFixed(2)}`;$('#h2').textContent=`${q.h2.toFixed(2)}`;$('#out').textContent=`${q.p.toFixed(3)}`;$('#math').textContent=`Forward pass\nz₁ = ${q.z1.toFixed(3)}  → h₁ = ReLU(z₁) = ${q.h1.toFixed(3)}\nz₂ = ${q.z2.toFixed(3)}  → h₂ = ReLU(z₂) = ${q.h2.toFixed(3)}\nŷ = σ(${q.z3.toFixed(3)}) = ${q.p.toFixed(3)}\nLoss = ½(ŷ − y)² = ${q.L.toFixed(5)}\n\nWeights\nw₁₁=${w.a.toFixed(3)}  w₁₂=${w.b.toFixed(3)}\nw₂₁=${w.c.toFixed(3)}  w₂₂=${w.d.toFixed(3)}\nv₁=${w.e.toFixed(3)}  v₂=${w.f.toFixed(3)}`}function learn(){let q=calc(),dz3=(q.p-q.y)*q.p*(1-q.p),dh1=dz3*w.e*(q.z1>0),dh2=dz3*w.f*(q.z2>0);w.e-=lr*dz3*q.h1;w.f-=lr*dz3*q.h2;w.a-=lr*dh1*q.x1;w.b-=lr*dh1*q.x2;w.c-=lr*dh2*q.x1;w.d-=lr*dh2*q.x2;render()}inputs.forEach(i=>i.oninput=render);$('#learn').onclick=learn;render();</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backpropagation by Hand | Deep Dive From Scratch</title>
+  <meta name="description" content="Interactive step-by-step visualizer of backpropagation in a neural network — forward pass, loss, chain rule, gradient computation, and weight update, all calculated live." />
+  <meta name="keywords" content="backpropagation, neural network, chain rule, gradient, forward pass, backward pass, weight update, deep learning, step by step, visualizer" />
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/backpropagation/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Backpropagation by Hand",
+    "description": "Interactive step-by-step visualizer of backpropagation in a neural network",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/backpropagation/",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="../theme.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']], tags: 'none', packages: { '[+]': ['ams'] } },
+      options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="top-nav">
+  <a href="../" class="nav-brand">
+    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-text">Deep Dive From Scratch</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="../" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:0.3rem">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>Home
+      </a>
+      <a href="../#posts" class="hide-sm">Posts</a>
+      <a href="../about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+    <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<header>
+  <h1>Backpropagation by Hand</h1>
+  <p class="subtitle">Trace every forward activation, every backward gradient, and every chain rule step through a live neural network</p>
+</header>
+
+<nav class="pipeline">
+  <button class="step-btn active" data-step="0">1. Network</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="1">2. Forward Pass</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="2">3. Loss</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="3">4. Output Gradient</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="4">5. Backward Pass</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="5">6. Weight Update</button>
+</nav>
+
+<!-- ═══════════════ STEP 0: NETWORK ═══════════════ -->
+<section class="step-panel active" id="step-0">
+  <h2>Step 1 — The Neural Network <span class="badge">2-3-1 architecture</span></h2>
+  <p class="desc">We use a simple network: 2 inputs, 3 hidden neurons (with sigmoid activation), and 1 output (with sigmoid). Adjust the weights and inputs to see how the network is wired.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="network-svg" class="network-svg" width="600" height="400"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Network architecture</h3>
+      <p>Our network has three layers:</p>
+      <p><strong>Input layer:</strong> 2 neurons (\(x_1, x_2\))</p>
+      <p><strong>Hidden layer:</strong> 3 neurons with sigmoid activation \(\sigma(z) = \frac{1}{1+e^{-z}}\)</p>
+      <p><strong>Output layer:</strong> 1 neuron with sigmoid activation</p>
+      <div class="formula-box">
+        \[ z_j^{(1)} = \sum_i w_{ji}^{(1)} x_i + b_j^{(1)} \]
+        \[ a_j^{(1)} = \sigma(z_j^{(1)}) \]
+        \[ z^{(2)} = \sum_j w_j^{(2)} a_j^{(1)} + b^{(2)} \]
+        \[ \hat{y} = \sigma(z^{(2)}) \]
+      </div>
+      <p>The <span style="color:var(--accent);font-weight:bold">blue lines</span> are weights. Adjust them with the sliders below, then press <em>Next Step</em> to run the forward pass.</p>
+    </div>
+  </div>
+  <div class="explanation-box wide">
+    <h3>Adjust inputs and weights</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:0.5rem;">
+      <div>
+        <h3 style="color:var(--accent);font-size:0.85rem;margin-bottom:0.5rem;">Inputs</h3>
+        <div class="slider-row">
+          <label for="in-x1">\(x_1\): <span id="in-x1-val" class="math-mono">0.50</span></label>
+          <input type="range" id="in-x1" min="-2" max="2" step="0.05" value="0.5" />
+        </div>
+        <div class="slider-row">
+          <label for="in-x2">\(x_2\): <span id="in-x2-val" class="math-mono">0.30</span></label>
+          <input type="range" id="in-x2" min="-2" max="2" step="0.05" value="0.3" />
+        </div>
+      </div>
+      <div>
+        <h3 style="color:var(--accent);font-size:0.85rem;margin-bottom:0.5rem;">Target & Learning Rate</h3>
+        <div class="slider-row">
+          <label for="in-target">Target \(y\): <span id="in-target-val" class="math-mono">1.00</span></label>
+          <input type="range" id="in-target" min="0" max="1" step="0.01" value="1" />
+        </div>
+        <div class="slider-row">
+          <label for="in-lr">Learning rate α: <span id="in-lr-val" class="math-mono">0.50</span></label>
+          <input type="range" id="in-lr" min="0.01" max="2" step="0.01" value="0.5" />
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="btn-net-random">Random Weights</button>
+      <button id="btn-net-reset">Reset Weights</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 1: FORWARD PASS ═══════════════ -->
+<section class="step-panel" id="step-1">
+  <h2>Step 2 — Forward Pass <span class="badge">Compute activations</span></h2>
+  <p class="desc">Data flows left to right. Each neuron computes a weighted sum of its inputs, then applies the sigmoid activation function. Every value is calculated live.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="forward-svg" class="network-svg" width="600" height="400"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>How the forward pass works</h3>
+      <p>For each hidden neuron \(j\):</p>
+      <div class="formula-box">
+        \[ z_j = w_{j1}x_1 + w_{j2}x_2 + b_j \]
+        \[ a_j = \sigma(z_j) = \frac{1}{1+e^{-z_j}} \]
+      </div>
+      <p>For the output neuron:</p>
+      <div class="formula-box">
+        \[ z_{\text{out}} = w_1 a_1 + w_2 a_2 + w_3 a_3 + b_{\text{out}} \]
+        \[ \hat{y} = \sigma(z_{\text{out}}) \]
+      </div>
+      <p>The sigmoid squashes any value into \((0, 1)\), making it interpretable as a probability.</p>
+    </div>
+  </div>
+  <table class="comp-table" id="forward-table">
+    <thead>
+      <tr><th>Neuron</th><th>Inputs</th><th>Weights</th><th>Bias</th><th>z (pre-activation)</th><th>a (activation)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ═══════════════ STEP 2: LOSS ═══════════════ -->
+<section class="step-panel" id="step-2">
+  <h2>Step 3 — The Loss Function <span class="badge">Binary cross-entropy</span></h2>
+  <p class="desc">We measure how wrong the prediction is using binary cross-entropy loss. The loss compares the network's output \(\hat{y}\) to the target \(y\).</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="loss-svg" width="500" height="300"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Binary cross-entropy</h3>
+      <p>The loss function for binary classification:</p>
+      <div class="formula-box">
+        \[ L = -[y \log(\hat{y}) + (1-y)\log(1-\hat{y})] \]
+      </div>
+      <p>When \(y = 1\): \(L = -\log(\hat{y})\) — penalizes \(\hat{y}\) far from 1.</p>
+      <p>When \(y = 0\): \(L = -\log(1-\hat{y})\) — penalizes \(\hat{y}\) far from 0.</p>
+      <p id="loss-display" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--highlight);margin-top:0.5rem;">L = —</p>
+      <p>The loss is <strong>differentiable</strong> — this is essential for backpropagation. We need \(\frac{\partial L}{\partial \hat{y}}\) to start the backward pass.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 3: OUTPUT GRADIENT ═══════════════ -->
+<section class="step-panel" id="step-3">
+  <h2>Step 4 — Gradient at the Output <span class="badge">δ = ∂L/∂z</span></h2>
+  <p class="desc">Backpropagation starts at the output. We compute the error signal δ — the gradient of the loss with respect to the pre-activation output. For sigmoid + cross-entropy, this simplifies beautifully.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="output-grad-svg" class="network-svg" width="600" height="400"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The error signal</h3>
+      <p>Using the chain rule:</p>
+      <div class="formula-box">
+        \[ \delta_{\text{out}} = \frac{\partial L}{\partial z_{\text{out}}} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z_{\text{out}}} \]
+      </div>
+      <p>For cross-entropy loss with sigmoid output, this simplifies to:</p>
+      <div class="formula-box">
+        \[ \delta_{\text{out}} = \hat{y} - y \]
+      </div>
+      <p id="delta-out-display" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--highlight);margin-top:0.5rem;">δ_out = —</p>
+      <p>This elegant result is why cross-entropy is paired with sigmoid. The gradient is simply the <strong>prediction error</strong>!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 4: BACKWARD PASS ═══════════════ -->
+<section class="step-panel" id="step-4">
+  <h2>Step 5 — Backward Pass Through the Network <span class="badge">Chain rule</span></h2>
+  <p class="desc">The error signal propagates backward through the network. Each hidden neuron receives a weighted sum of downstream gradients, multiplied by the derivative of its own activation.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="backward-svg" class="network-svg" width="600" height="400"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The chain rule in action</h3>
+      <p>For each hidden neuron \(j\):</p>
+      <div class="formula-box">
+        \[ \delta_j = \frac{\partial L}{\partial z_j} = \frac{\partial L}{\partial a_j} \cdot \sigma'(z_j) \]
+        \[ \frac{\partial L}{\partial a_j} = \sum_k w_k^{(2)} \delta_k \]
+        \[ \sigma'(z_j) = a_j(1 - a_j) \]
+      </div>
+      <p>So:</p>
+      <div class="formula-box">
+        \[ \delta_j = \left(\sum_k w_k^{(2)} \delta_k\right) a_j (1 - a_j) \]
+      </div>
+      <p>The gradient <strong>flows backward</strong> through the weights, and each neuron's local derivative \(\sigma'(z_j)\) modulates the signal.</p>
+    </div>
+  </div>
+  <div class="gradient-display" id="backward-display"></div>
+</section>
+
+<!-- ═══════════════ STEP 5: WEIGHT UPDATE ═══════════════ -->
+<section class="step-panel" id="step-5">
+  <h2>Step 6 — Weight Update <span class="badge">θ ← θ − α∇L</span></h2>
+  <p class="desc">Finally, we compute the gradient of the loss with respect to each weight and apply gradient descent. Click "Update" to perform one training step and watch the loss decrease.</p>
+  <div class="layout-row">
+    <div class="canvas-container">
+      <svg id="update-svg" class="network-svg" width="600" height="400"></svg>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Gradient of loss w.r.t. weights</h3>
+      <p>For output layer weights:</p>
+      <div class="formula-box">
+        \[ \frac{\partial L}{\partial w_j^{(2)}} = \delta_{\text{out}} \cdot a_j^{(1)} \]
+      </div>
+      <p>For hidden layer weights:</p>
+      <div class="formula-box">
+        \[ \frac{\partial L}{\partial w_{ji}^{(1)}} = \delta_j \cdot x_i \]
+      </div>
+      <p>Update rule (gradient descent):</p>
+      <div class="formula-box">
+        \[ w \leftarrow w - \alpha \frac{\partial L}{\partial w} \]
+      </div>
+      <div class="controls">
+        <button id="btn-update" class="accent-btn">One Training Step</button>
+        <button id="btn-update-10" class="accent-btn">10 Steps</button>
+        <button id="btn-update-reset">Reset Network</button>
+      </div>
+      <p id="update-status" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent2);margin-top:0.5rem;">Step 0 | L = —</p>
+    </div>
+  </div>
+  <table class="comp-table" id="gradient-table">
+    <thead>
+      <tr><th>Weight</th><th>Old value</th><th>Gradient ∂L/∂w</th><th>New value</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ═══ NAVIGATION ═══ -->
+<div class="nav-controls">
+  <button id="btn-prev" disabled>← Previous</button>
+  <span id="step-indicator">Step 1 / 6</span>
+  <button id="btn-next">Next →</button>
+</div>
+
+<footer>
+  <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+</footer>
+
+<script src="backpropagation.js?v=1"></script>
+
+</body>
+</html>

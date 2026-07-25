@@ -1,35 +1,343 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gradient Descent by Hand | Deep Dive From Scratch</title>
-  <meta name="description" content="An interactive visual guide to gradient descent, momentum, and Adam on a loss surface.">
-  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/gradient-descent/">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="description" content="Interactive step-by-step visualizer of gradient descent, momentum, and Adam optimizer — see every derivative and update calculated live on a 2D loss surface." />
+  <meta name="keywords" content="gradient descent, momentum, Adam optimizer, loss surface, derivatives, learning rate, optimization, machine learning, step by step, visualizer" />
+  <link rel="canonical" href="https://deepdivefromscratch.zichaoleng55.workers.dev/gradient-descent/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Gradient Descent by Hand",
+    "description": "Interactive step-by-step visualizer of gradient descent, momentum, and Adam optimizer",
+    "url": "https://deepdivefromscratch.zichaoleng55.workers.dev/gradient-descent/",
+    "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="../theme.js"></script>
-  <link rel="stylesheet" href="../style.css">
-  <style>
-    body{background:var(--bg);color:var(--text)} .lesson{max-width:1100px;margin:0 auto;padding:3rem 1.25rem 5rem}.intro{max-width:760px;margin:2rem 0}.eyebrow{color:var(--accent);font:700 .75rem/1 Inter;letter-spacing:.12em;text-transform:uppercase}.intro h1{font-size:clamp(2.2rem,6vw,4.5rem);letter-spacing:-.06em;margin:.5rem 0 1rem}.intro p,.explain{color:var(--text-secondary);line-height:1.75}.lab{display:grid;grid-template-columns:minmax(280px,1.2fr) minmax(270px,.8fr);gap:1.25rem}.panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.25rem}.canvas-wrap{position:relative}.canvas-wrap canvas{width:100%;aspect-ratio:1;border-radius:12px;background:#07111f;display:block}.controls{display:grid;gap:1rem}.control label{display:flex;justify-content:space-between;font-weight:700;font-size:.9rem}.control output{color:var(--accent);font-family:'JetBrains Mono',monospace}.control input{width:100%;accent-color:var(--accent);margin-top:.5rem}.tabs{display:flex;gap:.5rem;flex-wrap:wrap}.tabs button,.actions button{border:1px solid var(--border);border-radius:9px;padding:.6rem .8rem;background:var(--surface2);color:var(--text);font:600 .85rem Inter;cursor:pointer}.tabs button.active,.actions .primary{background:var(--accent);border-color:var(--accent);color:#03151b}.actions{display:flex;gap:.6rem;flex-wrap:wrap}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:1.25rem}.metric{padding:.8rem;border-radius:10px;background:var(--surface2)}.metric span{display:block;color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}.metric strong{font:700 1.1rem 'JetBrains Mono',monospace}.steps{margin-top:1.25rem;max-height:170px;overflow:auto;font:500 .8rem/1.7 'JetBrains Mono',monospace;color:var(--text-secondary);background:var(--surface2);border-radius:10px;padding:.8rem}.formula{margin-top:1.25rem;background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--border);border-radius:16px;padding:1.25rem}.formula code{color:var(--accent);font-family:'JetBrains Mono',monospace}@media(max-width:760px){.lab{grid-template-columns:1fr}.lesson{padding-top:1.5rem}}
-  </style>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]']],
+        tags: 'none',
+        packages: { '[+]': ['ams'] }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
 </head>
 <body>
-<nav class="top-nav"><a href="../" class="nav-brand"><span class="nav-brand-icon">🏊</span><span class="nav-brand-text">Deep Dive From Scratch</span></a><div class="nav-right"><div class="nav-links"><a href="../">Home</a><a href="../#posts" class="hide-sm">Posts</a><a href="../about.html" class="hide-sm">About</a></div><button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">◐</button></div></nav>
-<main class="lesson">
-  <section class="intro"><div class="eyebrow">Optimization playground</div><h1>Gradient Descent<br>by Hand</h1><p>Choose an optimizer and watch it walk down a two-parameter loss surface. Each dot is one update of <strong>θ = (x, y)</strong>; darker terrain means lower loss.</p></section>
-  <section class="lab"><div class="panel"><div class="canvas-wrap"><canvas id="surface" width="640" height="640" aria-label="Loss surface"></canvas></div><div class="metrics"><div class="metric"><span>Step</span><strong id="step">0</strong></div><div class="metric"><span>Loss</span><strong id="loss">—</strong></div><div class="metric"><span>Position x</span><strong id="xval">—</strong></div><div class="metric"><span>Position y</span><strong id="yval">—</strong></div></div></div><aside class="panel"><h2>Build the update</h2><p class="explain">Start at any point by clicking the surface. The arrows point in the direction of steepest increase; gradient descent moves the other way.</p><div class="tabs" id="tabs"><button class="active" data-mode="gd">Gradient descent</button><button data-mode="momentum">Momentum</button><button data-mode="adam">Adam</button></div><div class="controls"><div class="control"><label>Learning rate <output id="lrout">0.10</output></label><input id="lr" type="range" min="0.01" max="0.5" step="0.01" value="0.10"></div><div class="control"><label>Steps per run <output id="countout">25</output></label><input id="count" type="range" min="1" max="100" step="1" value="25"></div></div><div class="actions"><button class="primary" id="run">Run updates</button><button id="one">One step</button><button id="reset">Reset</button></div><div class="steps" id="log" aria-live="polite"></div></aside></section>
-  <section class="formula"><h2>The calculation</h2><p class="explain">For this bowl, <code>L(x, y) = 0.5x² + 2y²</code>, so <code>∇L = (x, 4y)</code>. Plain gradient descent applies <code>θₜ₊₁ = θₜ − α∇L(θₜ)</code>. Momentum retains a fraction of the last velocity; Adam rescales the update using moving gradient moments.</p></section>
-</main>
-<script>
-const canvas=document.querySelector('#surface'),ctx=canvas.getContext('2d'),lr=document.querySelector('#lr'),count=document.querySelector('#count');let state={x:2.8,y:-2.1,step:0,mode:'gd',vx:0,vy:0,mx:0,my:0,vx2:0,vy2:0,path:[]};
-const loss=(x,y)=>.5*x*x+2*y*y, grad=(x,y)=>[x,4*y], toP=(x,y)=>[(x+4)/8*canvas.width,(4-y)/8*canvas.height], fromP=(x,y)=>[x/canvas.width*8-4,4-y/canvas.height*8];
-function draw(){let im=ctx.createImageData(canvas.width,canvas.height),d=im.data;for(let py=0;py<canvas.height;py++)for(let px=0;px<canvas.width;px++){const [x,y]=fromP(px,py),v=Math.min(loss(x,y)/35,1),i=(py*canvas.width+px)*4;d[i]=7+v*42;d[i+1]=28+v*22;d[i+2]=48+v*80;d[i+3]=255}ctx.putImageData(im,0,0);ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;for(let i=-3;i<=3;i++){let a=toP(i,-4),b=toP(i,4);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();a=toP(-4,i);b=toP(4,i);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke()}if(state.path.length){ctx.strokeStyle='#72f4c7';ctx.lineWidth=3;ctx.beginPath();state.path.forEach((p,i)=>{const q=toP(p.x,p.y);i?ctx.lineTo(...q):ctx.moveTo(...q)});ctx.stroke()}const p=toP(state.x,state.y);ctx.fillStyle='#ffdc6e';ctx.beginPath();ctx.arc(...p,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.font='14px Inter';ctx.fillText('minimum',...toP(0,0).map((v,i)=>v+(i?18:8)))}
-function update(){document.querySelector('#step').textContent=state.step;document.querySelector('#loss').textContent=loss(state.x,state.y).toFixed(4);document.querySelector('#xval').textContent=state.x.toFixed(3);document.querySelector('#yval').textContent=state.y.toFixed(3);draw()}
-function take(){let [gx,gy]=grad(state.x,state.y),a=+lr.value;if(state.mode==='momentum'){state.vx=.88*state.vx+gx;state.vy=.88*state.vy+gy;gx=state.vx;gy=state.vy}else if(state.mode==='adam'){state.mx=.9*state.mx+.1*gx;state.my=.9*state.my+.1*gy;state.vx2=.999*state.vx2+.001*gx*gx;state.vy2=.999*state.vy2+.001*gy*gy;gx=state.mx/(Math.sqrt(state.vx2)+1e-8);gy=state.my/(Math.sqrt(state.vy2)+1e-8)}state.x-=a*gx;state.y-=a*gy;state.step++;state.path.push({x:state.x,y:state.y});document.querySelector('#log').innerHTML=`${state.step.toString().padStart(3,'0')}  θ=(${state.x.toFixed(3)}, ${state.y.toFixed(3)})  L=${loss(state.x,state.y).toFixed(4)}<br>`+document.querySelector('#log').innerHTML;update()}
-canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect(),p=fromP((e.clientX-r.left)/r.width*canvas.width,(e.clientY-r.top)/r.height*canvas.height);state={...state,x:p[0],y:p[1],step:0,vx:0,vy:0,mx:0,my:0,vx2:0,vy2:0,path:[{x:p[0],y:p[1]}]};document.querySelector('#log').textContent='New starting point selected.';update()});
-lr.oninput=()=>document.querySelector('#lrout').textContent=(+lr.value).toFixed(2);count.oninput=()=>document.querySelector('#countout').textContent=count.value;document.querySelector('#one').onclick=take;document.querySelector('#run').onclick=()=>{for(let i=0;i<+count.value;i++)take()};document.querySelector('#reset').onclick=()=>{state={...state,x:2.8,y:-2.1,step:0,vx:0,vy:0,mx:0,my:0,vx2:0,vy2:0,path:[{x:2.8,y:-2.1}]};document.querySelector('#log').textContent='';update()};document.querySelector('#tabs').onclick=e=>{if(!e.target.dataset.mode)return;state.mode=e.target.dataset.mode;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b===e.target));document.querySelector('#log').textContent=`Optimizer: ${e.target.textContent}`};state.path=[{x:state.x,y:state.y}];update();
-</script>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="top-nav">
+  <a href="../" class="nav-brand">
+    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-text">Deep Dive From Scratch</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="../" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:0.3rem">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>Home
+      </a>
+      <a href="../#posts" class="hide-sm">Posts</a>
+      <a href="../about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+    </div>
+    <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<header>
+  <h1>Gradient Descent by Hand</h1>
+  <p class="subtitle">Watch every derivative, every update, and every optimizer walk down a live loss surface — step by step</p>
+</header>
+
+<nav class="pipeline">
+  <button class="step-btn active" data-step="0">1. Loss Surface</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="1">2. The Gradient</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="2">3. Vanilla GD</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="3">4. Momentum</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="4">5. Adam</button>
+  <span class="arrow">→</span>
+  <button class="step-btn" data-step="5">6. Comparison</button>
+</nav>
+
+<!-- ═══════════════ STEP 0: LOSS SURFACE ═══════════════ -->
+<section class="step-panel active" id="step-0">
+  <h2>Step 1 — The Loss Surface <span class="badge">2D quadratic bowl</span></h2>
+  <p class="desc">Every optimization problem starts with a loss function. Here we use a 2D quadratic bowl. Click anywhere on the canvas to set a starting point — the optimizer will walk from there.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="surface-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁ (parameter 1)</span>
+        <span class="x-label">θ₂ (parameter 2)</span>
+      </div>
+      <div class="controls">
+        <button id="btn-reset-start">Reset Start Point</button>
+        <button id="btn-random-start">Random Start</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>What is a loss surface?</h3>
+      <p>A <strong>loss function</strong> \(L(\boldsymbol{\theta})\) measures how bad our model's parameters \(\boldsymbol{\theta}\) are. The <strong>loss surface</strong> plots this value for every possible parameter combination.</p>
+      <div class="formula-box">
+        \[ L(\theta_1, \theta_2) = \frac{1}{2}\theta_1^2 + 2\theta_2^2 \]
+      </div>
+      <p>This is a <strong>convex quadratic bowl</strong> — the global minimum is at \((0, 0)\) where \(L = 0\).</p>
+      <p>The elliptical shape comes from the different coefficients: the loss grows 4× faster along \(\theta_2\) than \(\theta_1\). This will matter a lot for gradient descent!</p>
+      <p>👉 Click on the canvas to set a starting point, then press <em>Next Step</em> to compute the gradient.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 1: THE GRADIENT ═══════════════ -->
+<section class="step-panel" id="step-1">
+  <h2>Step 2 — The Gradient <span class="badge">Direction of steepest ascent</span></h2>
+  <p class="desc">The gradient \(\nabla L\) is a vector of partial derivatives. It points in the direction of <strong>steepest ascent</strong>. Gradient descent moves in the <strong>opposite</strong> direction.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="gradient-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁</span>
+        <span class="x-label">θ₂</span>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>Computing the gradient</h3>
+      <p>The gradient is the vector of partial derivatives with respect to each parameter:</p>
+      <div class="formula-box">
+        \[ \nabla L = \begin{pmatrix} \frac{\partial L}{\partial \theta_1} \\[6pt] \frac{\partial L}{\partial \theta_2} \end{pmatrix} \]
+      </div>
+      <p>For our loss function \(L = \frac{1}{2}\theta_1^2 + 2\theta_2^2\):</p>
+      <div class="formula-box">
+        \[ \frac{\partial L}{\partial \theta_1} = \theta_1 \]
+        \[ \frac{\partial L}{\partial \theta_2} = 4\theta_2 \]
+      </div>
+      <p id="gradient-live" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent2);">At current point: ∇L = (—, —)</p>
+      <p>The <span style="color:var(--negative);font-weight:bold">red arrow</span> shows the gradient (uphill). Gradient descent moves along the <span style="color:var(--positive);font-weight:bold">green arrow</span> (downhill).</p>
+      <p>Notice how the gradient is steeper along \(\theta_2\) — this causes oscillation in vanilla GD!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STEP 2: VANILLA GD ═══════════════ -->
+<section class="step-panel" id="step-2">
+  <h2>Step 3 — Vanilla Gradient Descent <span class="badge">θ ← θ − α∇L</span></h2>
+  <p class="desc">The simplest optimizer: take a step proportional to the negative gradient. Adjust the learning rate and watch how it affects convergence.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="gd-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁</span>
+        <span class="x-label">θ₂</span>
+      </div>
+      <div class="controls">
+        <button id="btn-gd-step" class="accent-btn">One Step</button>
+        <button id="btn-gd-run" class="accent-btn">Run 20 Steps</button>
+        <button id="btn-gd-reset">Reset Path</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The update rule</h3>
+      <p>At each step, update parameters by moving against the gradient:</p>
+      <div class="formula-box">
+        \[ \boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \alpha \, \nabla L(\boldsymbol{\theta}_t) \]
+      </div>
+      <p>where \(\alpha\) is the <strong>learning rate</strong> — the step size.</p>
+      <div class="slider-row">
+        <label for="lr-slider">Learning rate α: <span id="lr-val" class="math-mono">0.10</span></label>
+        <input type="range" id="lr-slider" min="0.01" max="0.50" step="0.01" value="0.10" />
+      </div>
+      <p id="gd-live" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent2);">Step 0 | L = —</p>
+      <p><strong>Too small α:</strong> painfully slow convergence.<br><strong>Too large α:</strong> overshooting and divergence.<br><strong>Just right:</strong> smooth descent — but note the oscillation along θ₂!</p>
+    </div>
+  </div>
+  <div class="step-log" id="gd-log"></div>
+</section>
+
+<!-- ═══════════════ STEP 3: MOMENTUM ═══════════════ -->
+<section class="step-panel" id="step-3">
+  <h2>Step 4 — Momentum <span class="badge">v ← βv + ∇L</span></h2>
+  <p class="desc">Momentum accumulates a velocity vector across steps, smoothing out oscillations and accelerating convergence in the relevant direction.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="momentum-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁</span>
+        <span class="x-label">θ₂</span>
+      </div>
+      <div class="controls">
+        <button id="btn-mom-step" class="accent-btn">One Step</button>
+        <button id="btn-mom-run" class="accent-btn">Run 20 Steps</button>
+        <button id="btn-mom-reset">Reset Path</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>How momentum works</h3>
+      <p>Instead of using the raw gradient, momentum maintains a <strong>velocity</strong> vector \(\mathbf{v}\) that accumulates gradients over time:</p>
+      <div class="formula-box">
+        \[ \mathbf{v}_{t+1} = \beta \mathbf{v}_t + \nabla L(\boldsymbol{\theta}_t) \]
+        \[ \boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \alpha \, \mathbf{v}_{t+1} \]
+      </div>
+      <p>where \(\beta\) is the <strong>momentum coefficient</strong> (typically 0.9).</p>
+      <div class="slider-row">
+        <label for="lr-mom-slider">Learning rate α: <span id="lr-mom-val" class="math-mono">0.10</span></label>
+        <input type="range" id="lr-mom-slider" min="0.01" max="0.50" step="0.01" value="0.10" />
+      </div>
+      <div class="slider-row">
+        <label for="beta-slider">Momentum β: <span id="beta-val" class="math-mono">0.90</span></label>
+        <input type="range" id="beta-slider" min="0.00" max="0.99" step="0.01" value="0.90" />
+      </div>
+      <p id="mom-live" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent2);">Step 0 | L = —</p>
+      <p>The oscillations along \(\theta_2\) <strong>cancel out</strong> because momentum averages successive gradients — positive and negative gradients cancel, while the consistent gradient along \(\theta_1\) accumulates.</p>
+    </div>
+  </div>
+  <div class="step-log" id="mom-log"></div>
+</section>
+
+<!-- ═══════════════ STEP 4: ADAM ═══════════════ -->
+<section class="step-panel" id="step-4">
+  <h2>Step 5 — Adam Optimizer <span class="badge">Adaptive moments</span></h2>
+  <p class="desc">Adam combines momentum (first moment) with an adaptive per-parameter learning rate (second moment). It is the most widely used optimizer in deep learning.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="adam-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁</span>
+        <span class="x-label">θ₂</span>
+      </div>
+      <div class="controls">
+        <button id="btn-adam-step" class="accent-btn">One Step</button>
+        <button id="btn-adam-run" class="accent-btn">Run 20 Steps</button>
+        <button id="btn-adam-reset">Reset Path</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>The Adam update</h3>
+      <p>Adam maintains two moving averages for each parameter:</p>
+      <div class="formula-box">
+        <strong>First moment (momentum):</strong>
+        \[ \mathbf{m}_t = \beta_1 \mathbf{m}_{t-1} + (1-\beta_1)\nabla L_t \]
+        <strong>Second moment (variance):</strong>
+        \[ \mathbf{v}_t = \beta_2 \mathbf{v}_{t-1} + (1-\beta_2)(\nabla L_t)^2 \]
+        <strong>Bias-corrected update:</strong>
+        \[ \hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1-\beta_1^t}, \quad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1-\beta_2^t} \]
+        \[ \boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \alpha \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \]
+      </div>
+      <p>The second moment <strong>rescales each parameter's update</strong> by its gradient magnitude. Parameters with large gradients get smaller effective steps — this automatically dampens the \(\theta_2\) oscillation!</p>
+      <div class="slider-row">
+        <label for="lr-adam-slider">Learning rate α: <span id="lr-adam-val" class="math-mono">0.10</span></label>
+        <input type="range" id="lr-adam-slider" min="0.01" max="0.50" step="0.01" value="0.10" />
+      </div>
+      <p id="adam-live" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent2);">Step 0 | L = —</p>
+      <p>Typical defaults: \(\beta_1 = 0.9\), \(\beta_2 = 0.999\), \(\epsilon = 10^{-8}\).</p>
+    </div>
+  </div>
+  <div class="step-log" id="adam-log"></div>
+</section>
+
+<!-- ═══════════════ STEP 5: COMPARISON ═══════════════ -->
+<section class="step-panel" id="step-5">
+  <h2>Step 6 — Side-by-Side Comparison <span class="badge">All three optimizers</span></h2>
+  <p class="desc">Run all three optimizers from the same starting point with the same learning rate. Watch how each one navigates the loss surface differently.</p>
+  <div class="layout-row flex-start">
+    <div class="canvas-container">
+      <div class="canvas-wrap">
+        <canvas id="compare-canvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-labels">
+        <span class="y-label">θ₁</span>
+        <span class="x-label">θ₂</span>
+      </div>
+      <div class="controls">
+        <button id="btn-compare-run" class="accent-btn">Run 30 Steps</button>
+        <button id="btn-compare-reset">Reset All</button>
+      </div>
+    </div>
+    <div class="explanation-box step-sidebar">
+      <h3>What to look for</h3>
+      <p><span style="color:#7c83ff;font-weight:bold">Blue (Vanilla GD):</span> Oscillates heavily along θ₂. Slow to converge.</p>
+      <p><span style="color:#2dd4bf;font-weight:bold">Teal (Momentum):</span> Dampens oscillation. Reaches the minimum in fewer steps.</p>
+      <p><span style="color:#fbbf24;font-weight:bold">Gold (Adam):</span> Adapts step sizes per-parameter. Smoothest and fastest descent.</p>
+      <div class="formula-box">
+        <strong>Key insight:</strong>
+        \[ \text{Vanilla GD: no memory} \]
+        \[ \text{Momentum: remembers direction} \]
+        \[ \text{Adam: remembers direction + adapts step size} \]
+      </div>
+    </div>
+  </div>
+  <table class="comparison-table" id="compare-table">
+    <thead>
+      <tr>
+        <th>Optimizer</th>
+        <th>Steps to converge</th>
+        <th>Final loss</th>
+        <th>Oscillation?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="opt-name">Vanilla GD</td><td id="cmp-gd-steps">—</td><td id="cmp-gd-loss">—</td><td id="cmp-gd-osc">—</td></tr>
+      <tr><td class="opt-name">Momentum</td><td id="cmp-mom-steps">—</td><td id="cmp-mom-loss">—</td><td id="cmp-mom-osc">—</td></tr>
+      <tr><td class="opt-name">Adam</td><td id="cmp-adam-steps">—</td><td id="cmp-adam-loss">—</td><td id="cmp-adam-osc">—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ NAVIGATION ═══ -->
+<div class="nav-controls">
+  <button id="btn-prev" disabled>← Previous</button>
+  <span id="step-indicator">Step 1 / 6</span>
+  <button id="btn-next">Next →</button>
+</div>
+
+<footer>
+  <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+</footer>
+
+<script src="gradient-descent.js?v=1"></script>
+
 </body>
 </html>
