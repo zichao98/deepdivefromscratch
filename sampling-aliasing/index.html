@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sampling & Aliasing — Signal Lab | Deep Dive From Scratch</title>
+  <meta name="description" content="An interactive visual explanation of the sampling theorem, Nyquist rate, aliasing, and anti-aliasing filters." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="../theme.js"></script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="sampling-page">
+  <nav class="top-nav">
+    <a href="../" class="nav-brand">
+      <span class="nav-brand-icon">◌</span>
+      <span class="nav-brand-text">Deep Dive From Scratch</span>
+    </a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="../" class="back-link">Home</a>
+        <a href="../#posts" class="hide-sm">Posts</a>
+        <a href="../about.html" class="hide-sm">About</a>
+      </div>
+      <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
+        <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="signal-hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Signal lab / 01</div>
+        <h1>When a signal<br /><em>lies</em> to you.</h1>
+        <p class="hero-lede">Sampling turns a continuous wave into a sequence of numbers. Get the timing wrong, and a fast signal can come back looking like a completely different, slower one.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#lab">Open the lab <span>↓</span></a>
+          <a class="text-link" href="#why">Read the short version <span>→</span></a>
+        </div>
+      </div>
+      <div class="hero-orbit" aria-label="Illustration of a waveform becoming sample points">
+        <div class="orbit-ring orbit-ring-one"></div>
+        <div class="orbit-ring orbit-ring-two"></div>
+        <div class="orbit-label label-top">CONTINUOUS</div>
+        <div class="orbit-label label-bottom">DISCRETE</div>
+        <svg class="hero-wave" viewBox="0 0 480 260" fill="none" role="img" aria-label="A sine wave and its sample points">
+          <path d="M18 130 C48 42, 78 42, 108 130 S168 218, 198 130 S258 42, 288 130 S348 218, 378 130 S438 42, 468 130" stroke="currentColor" stroke-width="3" />
+          <path d="M18 130 C48 42, 78 42, 108 130 S168 218, 198 130 S258 42, 288 130 S348 218, 378 130 S438 42, 468 130" stroke="currentColor" stroke-width="18" opacity=".08" />
+          <g fill="var(--coral)" stroke="var(--hero-bg)" stroke-width="5">
+            <circle cx="38" cy="76" r="8"/><circle cx="100" cy="117" r="8"/><circle cx="162" cy="204" r="8"/><circle cx="224" cy="82" r="8"/><circle cx="286" cy="130" r="8"/><circle cx="348" cy="204" r="8"/><circle cx="410" cy="67" r="8"/><circle cx="462" cy="119" r="8"/>
+          </g>
+        </svg>
+        <div class="hero-note"><span>01</span> Same samples.<br />Different story.</div>
+      </div>
+    </section>
+
+    <section class="intro-strip" id="why">
+      <div class="intro-index">A / THE BIG IDEA</div>
+      <div class="intro-text"><strong>A digital signal is not a weaker copy.</strong> It can be an exact representation — but only when the sample rate is high enough to capture the signal's fastest movement.</div>
+      <div class="intro-rule"></div>
+      <div class="intro-equation"><span>f</span><sub>s</sub> <span class="eq-symbol">&gt;</span> 2<span>f</span><sub>max</sub><small>Nyquist condition</small></div>
+    </section>
+
+    <section class="content-section process-section">
+      <div class="section-heading"><span class="section-number">01</span><div><div class="section-kicker">Build the intuition</div><h2>Three moves. One invisible trap.</h2></div></div>
+      <div class="process-grid">
+        <article class="process-card"><div class="card-number">01</div><div class="card-icon line-icon">〰</div><h3>Start continuous</h3><p>The real world varies smoothly: air pressure, light, voltage, position. We describe it as <span class="mono">x(t)</span>, a value for every moment in time.</p><div class="card-caption">TIME →</div></article>
+        <article class="process-card active-card"><div class="card-number">02</div><div class="card-icon dot-icon">···</div><h3>Take snapshots</h3><p>A sampler measures the signal at regular intervals. The sample rate <span class="mono">f<sub>s</sub></span> tells us how many snapshots arrive each second.</p><div class="card-caption">SNAPSHOT →</div></article>
+        <article class="process-card"><div class="card-number">03</div><div class="card-icon alias-icon">↝</div><h3>Rebuild the wave</h3><p>A reconstruction filter connects the dots. If the dots are too sparse, the smooth wave we rebuild is not the one we started with.</p><div class="card-caption">RECONSTRUCTION</div></article>
+      </div>
+    </section>
+
+    <section class="content-section lab-section" id="lab">
+      <div class="section-heading"><span class="section-number">02</span><div><div class="section-kicker">Interactive experiment</div><h2>Make the signal tell on itself.</h2></div><div class="live-pill"><span></span> Live canvas</div></div>
+      <div class="lab-shell">
+        <div class="lab-toolbar">
+          <div class="lab-title"><span class="lab-mark">◉</span><div><strong>Sampling console</strong><small>Adjust the dials. Watch the samples.</small></div></div>
+          <button class="button button-quiet" id="reset-lab">Reset experiment <span>↺</span></button>
+        </div>
+        <div class="lab-layout">
+          <div class="plot-column">
+            <div class="plot-card main-plot-card"><div class="plot-legend"><span><i class="legend-line raw"></i> original signal</span><span><i class="legend-dot"></i> samples</span><span><i class="legend-line rebuilt"></i> rebuilt signal</span></div><canvas id="signal-canvas" aria-label="Interactive waveform plot"></canvas><div class="axis-label y-axis">amplitude</div><div class="axis-label x-axis">time →</div></div>
+            <div class="plot-card spectrum-card"><div class="plot-heading"><span>Frequency view</span><span class="small-muted">where energy lands</span></div><canvas id="spectrum-canvas" aria-label="Frequency spectrum showing the Nyquist limit"></canvas></div>
+          </div>
+          <aside class="control-panel">
+            <div class="control-intro"><span class="control-label">INPUT SIGNAL</span><div class="metric"><strong id="tone-value">7.0</strong><span>Hz</span></div><p>A faster wave packs more cycles into the same second.</p></div>
+            <label class="range-control" for="tone-slider"><span>Frequency <b id="tone-readout">7.0 Hz</b></span><input id="tone-slider" type="range" min="1" max="18" step="0.5" value="7" /></label>
+            <div class="control-divider"></div>
+            <div class="control-intro"><span class="control-label">SAMPLER</span><div class="metric"><strong id="rate-value">12</strong><span>samples/s</span></div><p>More snapshots give the sampler more detail to work with.</p></div>
+            <label class="range-control" for="rate-slider"><span>Sample rate <b id="rate-readout">12 Hz</b></span><input id="rate-slider" type="range" min="4" max="30" step="1" value="12" /></label>
+            <div class="nyquist-readout"><span>Nyquist limit</span><strong id="nyquist-value">6.0 Hz</strong></div>
+            <label class="filter-toggle"><input id="filter-toggle" type="checkbox" /><span class="fake-checkbox">✓</span><span><strong>Engage anti-alias filter</strong><small>Remove frequencies above the safe limit before sampling.</small></span></label>
+            <div class="status-box safe" id="status-box"><span class="status-icon">!</span><div><strong id="status-title">Aliasing detected</strong><p id="status-copy">The signal is above the Nyquist limit. It will fold into a lower frequency.</p></div></div>
+          </aside>
+        </div>
+        <div class="lab-footer"><div><span class="footer-label">WHAT YOU ARE SEEING</span><p id="lab-explanation">The orange dots are the only facts the digital system receives. The turquoise curve is one possible reconstruction — an alias.</p></div><div class="alias-metric"><span>apparent frequency</span><strong id="alias-value">5.0 Hz</strong></div></div>
+      </div>
+    </section>
+
+    <section class="content-section theorem-section">
+      <div class="theorem-card"><div class="theorem-side"><div class="section-kicker">The rule that saves you</div><h2>The sampling theorem</h2><p>If a signal is band-limited to <span class="mono">f<sub>max</sub></span>, sample it at a rate greater than twice that frequency and the original can be perfectly reconstructed.</p><div class="big-equation">f<sub>s</sub> <span>&gt;</span> 2f<sub>max</sub></div><p class="theorem-note">The boundary, <span class="mono">f<sub>s</sub>/2</span>, is the <strong>Nyquist frequency</strong> for a given sampler.</p></div><div class="theorem-diagram"><div class="diagram-axis"></div><div class="diagram-line line-a"></div><div class="diagram-line line-b"></div><div class="diagram-dot d1"></div><div class="diagram-dot d2"></div><div class="diagram-dot d3"></div><div class="diagram-dot d4"></div><div class="diagram-dot d5"></div><div class="diagram-label label-a">signal bandwidth</div><div class="diagram-label label-b">safe zone</div><div class="diagram-nyquist">f<sub>s</sub>/2</div></div></div>
+    </section>
+
+    <section class="content-section alias-section">
+      <div class="section-heading"><span class="section-number">03</span><div><div class="section-kicker">The failure mode</div><h2>Aliasing is a frequency fold.</h2></div></div>
+      <div class="alias-grid"><div class="alias-copy"><p>When the sample rate is too low, the sampler cannot distinguish between different fast waves. Their samples land in the same places, so the reconstruction chooses the wrong identity.</p><div class="quote-block"><span class="quote-mark">“</span><p>Two different continuous signals can produce the exact same sequence of samples.</p></div><p>That false, lower-frequency look-alike is called an <strong>alias</strong>. It is not noise; it is a perfectly consistent — and perfectly wrong — interpretation of the data.</p></div><div class="fold-card"><div class="fold-top"><span>FREQUENCY FOLD</span><span class="fold-arrow">↘</span></div><div class="fold-graphic"><div class="fold-line"></div><div class="fold-limit">f<sub>s</sub>/2</div><div class="fold-source">fast<br /><b>7 Hz</b></div><div class="fold-result">slow alias<br /><b>5 Hz</b></div></div><div class="fold-bottom">7 Hz sampled at 12 Hz looks like 5 Hz</div></div></div>
+    </section>
+
+    <section class="content-section quiz-section" id="quiz">
+      <div class="quiz-card"><div><div class="section-kicker">Quick check</div><h2>Will this signal alias?</h2><p>A 9 Hz tone is sampled at 24 samples per second. What happens?</p></div><div class="quiz-options"><button class="quiz-option" data-answer="no">No aliasing</button><button class="quiz-option" data-answer="yes">It aliases</button></div><div class="quiz-result" id="quiz-result" aria-live="polite"></div></div>
+    </section>
+
+    <section class="content-section takeaways-section">
+      <div class="section-heading"><span class="section-number">04</span><div><div class="section-kicker">Keep this mental model</div><h2>Three ways to stay out of trouble.</h2></div></div>
+      <div class="takeaway-grid"><article><span class="takeaway-num">01</span><h3>Know the bandwidth</h3><p>Identify the highest frequency you care about before choosing a sampler.</p></article><article><span class="takeaway-num">02</span><h3>Sample faster</h3><p>Use a rate above twice the highest frequency — and leave room for a real filter.</p></article><article><span class="takeaway-num">03</span><h3>Filter first</h3><p>An anti-aliasing low-pass filter removes unsafe frequencies before they become irreversible.</p></article></div>
+    </section>
+
+    <section class="source-note"><span class="source-icon">↗</span><p><strong>Further reading</strong><br />This interactive explanation is based on the sampling theorem and aliasing overview in <a href="https://www.mropengate.com/2015/04/sampling-theoremaliasing-effect.html" target="_blank" rel="noopener">Mr. Opengate's original article</a>.</p></section>
+  </main>
+
+  <footer class="sampling-footer"><a href="../" class="nav-brand"><span class="nav-brand-icon">◌</span><span class="nav-brand-text">Deep Dive From Scratch</span></a><span>Make the invisible visible.</span></footer>
+  <script src="sampling.js"></script>
+</body>
+</html>
