@@ -1,1226 +1,345 @@
-/**
- * Ordinary Least Squares (OLS) Interactive Deep Dive
- * Vanilla Javascript implementing OLS from scratch.
- * - Dynamic SVG scatter plot (add, drag, delete points)
- * - Step-by-step math solver (analytical tabular formulation)
- * - 2D Loss surface canvas + Gradient descent animation
- * - Design matrices visualization
- * - Normal equation matrix arithmetic
- * - Diagnostic plots & statistical evaluations (R^2, Residual plots)
- */
-
+/* Ordinary Least Squares lesson — interactive labs. Uses window.Kit (lesson/labkit.js). */
 (function () {
-  // ─── STATE MANAGEMENT ───
-  let points = [
-    { x: 2.0, y: 3.0, id: 1 },
-    { x: 4.0, y: 5.0, id: 2 },
-    { x: 5.0, y: 4.0, id: 3 },
-    { x: 7.0, y: 8.0, id: 4 },
-    { x: 8.0, y: 7.0, id: 5 }
-  ];
-  let pointIdCounter = 6;
+  'use strict';
+  var K = window.Kit, $ = K.$, out = K.out, note = K.note, fmt = K.fmt;
 
-  // Manual Candidate Line state
-  let candidate = { m: 0.8, c: 1.5 };
+  /* ─── Ice-cream data: temperature (°C), weekend flag, sales ─── */
+  var T = [12.4, 14, 15.8, 16.6, 17.8, 18.7, 19.8, 21.5, 22.5, 23.5, 25.1, 26.2, 27.2, 28, 29.9, 30.4, 32.7, 32.9];
+  var WK = [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0];
+  var S = [178, 131, 161, 215, 173, 197, 239, 226, 205, 284, 246, 242, 318, 256, 293, 329, 309, 314];
+  var XD = [10, 36], YD = [100, 380];
 
-  // Optimal analytical OLS parameters
-  let optimal = { beta1: 0, beta0: 0, ssr: 0 };
-
-  // Navigation state
-  let activeStep = 0;
-  const TOTAL_STEPS = 6;
-
-  // Gradient Descent state
-  let gd = {
-    running: false,
-    interval: null,
-    beta0: 0, // Intercept
-    beta1: 0, // Slope
-    path: []   // array of {beta0, beta1}
-  };
-
-  // SVG Coordinates translation helpers
-  const svgWidth = 500;
-  const svgHeight = 400;
-  const padding = { top: 30, right: 30, bottom: 40, left: 40 };
-
-  // ─── INIT & DOM REFERENCES ───
-  document.addEventListener('DOMContentLoaded', () => {
-    initPipeline();
-    setupPlaygroundSVG();
-    setupSliders();
-    setupControls();
-    setupGDControls();
-    
-    // Initial math calculations and renders
-    recalculateOLS();
-    syncUI();
-  });
-
-  // ─── PIPELINE NAVIGATION ───
-  function initPipeline() {
-    const stepBtns = document.querySelectorAll('.step-btn');
-    stepBtns.forEach((btn, idx) => {
-      btn.addEventListener('click', () => goToStep(idx));
-    });
-
-    document.getElementById('btn-prev').addEventListener('click', () => {
-      if (activeStep > 0) goToStep(activeStep - 1);
-    });
-    document.getElementById('btn-next').addEventListener('click', () => {
-      if (activeStep < TOTAL_STEPS - 1) goToStep(activeStep + 1);
-    });
+  function fit(xs, ys) {
+    var n = xs.length, mx = 0, my = 0, sxy = 0, sxx = 0, sse = 0, sst = 0;
+    for (var i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }
+    mx /= n; my /= n;
+    for (i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) * (xs[i] - mx); }
+    var w = sxy / sxx, b = my - w * mx;
+    for (i = 0; i < n; i++) { var r = ys[i] - (w * xs[i] + b); sse += r * r; sst += (ys[i] - my) * (ys[i] - my); }
+    return { w: w, b: b, mx: mx, my: my, sxy: sxy, sxx: sxx, sse: sse, r2: 1 - sse / sst };
   }
+  function sse(xs, ys, w, b) { var s = 0; for (var i = 0; i < xs.length; i++) { var r = ys[i] - (w * xs[i] + b); s += r * r; } return s; }
+  var BEST = fit(T, S);
 
-  function goToStep(stepIdx) {
-    if (stepIdx < 0 || stepIdx >= TOTAL_STEPS) return;
-    
-    // Stop gradient descent if running when leaving the step
-    if (activeStep === 2 && stepIdx !== 2) {
-      stopGradientDescent();
-    }
-
-    activeStep = stepIdx;
-
-    // Update active tab buttons
-    document.querySelectorAll('.step-btn').forEach((btn, idx) => {
-      btn.classList.toggle('active', idx === stepIdx);
-    });
-
-    // Show active panel
-    document.querySelectorAll('.step-panel').forEach((panel, idx) => {
-      panel.classList.toggle('active', idx === stepIdx);
-    });
-
-    // Update navigation controls
-    document.getElementById('btn-prev').disabled = (stepIdx === 0);
-    document.getElementById('btn-next').disabled = (stepIdx === TOTAL_STEPS - 1);
-    document.getElementById('step-indicator').textContent = `Step ${stepIdx + 1} / ${TOTAL_STEPS}`;
-
-    // Perform step-specific triggers
-    triggerStepRender(stepIdx);
+  function plotFrame(ctx, w, h, xd, yd) {
+    return K.frame(ctx, w, h, xd || XD, yd || YD, { xticks: K.range(10, 35, 5), yticks: K.range(100, 350, 50), xfmt: function (t) { return t + '°'; }, xlabel: 'temperature', ylabel: 'sales' });
   }
-
-  function triggerStepRender(stepIdx) {
-    if (stepIdx === 2) {
-      // Step 3: Draw Loss Surface
-      drawLossSurface();
-    } else if (stepIdx === 5) {
-      // Step 6: Diagnostics
-      renderDiagnostics();
-    }
-    
-    // Trigger LaTeX typesetting for MathJax on step transitions to prevent layout bugs
-    if (window.MathJax && window.MathJax.typesetPromise) {
-      window.MathJax.typesetPromise();
+  function drawLine(ctx, F, w, b, color, width, dash) {
+    ctx.save(); ctx.beginPath(); ctx.rect(F.pl, F.pt, 1e4, 1e4); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = width || 3; if (dash) ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(F.X(XD[0]), F.Y(w * XD[0] + b)); ctx.lineTo(F.X(XD[1]), F.Y(w * XD[1] + b)); ctx.stroke();
+    ctx.restore();
+  }
+  function points(ctx, F, xs, ys, c, weekendShapes) {
+    for (var i = 0; i < xs.length; i++) {
+      var px = F.X(xs[i]), py = F.Y(ys[i]);
+      if (weekendShapes && WK[i]) { ctx.fillStyle = c.hl; ctx.fillRect(px - 5, py - 5, 10, 10); }
+      else K.dot(ctx, px, py, 4.5, c.accent2);
     }
   }
 
-  // ─── SLIDERS & USER INTERACTION ───
-  function setupSliders() {
-    const slopeSlider = document.getElementById('slope-slider');
-    const interceptSlider = document.getElementById('intercept-slider');
-
-    slopeSlider.addEventListener('input', (e) => {
-      candidate.m = parseFloat(e.target.value);
-      document.getElementById('slope-val').textContent = candidate.m.toFixed(2);
-      onCandidateLineChanged();
+  /* ═════ Lab 0 — fit by eye ═════ */
+  (function () {
+    var lab = document.getElementById('lab-eye'); if (!lab) return;
+    var el = $(lab, 'canvas'), s, hx = [13, 33], hy, active = 0;
+    function line() { var w = (hy[1] - hy[0]) / (hx[1] - hx[0]); return { w: w, b: hy[0] - w * hx[0] }; }
+    function update() {
+      var l = line(), e = sse(T, S, l.w, l.b), ratio = e / BEST.sse;
+      out(lab, 'w', fmt(l.w, 2)); out(lab, 'b', fmt(l.b, 1));
+      var m = out(lab, 'sse', Math.round(e).toLocaleString()); m.className = ratio <= 1.08 ? 'good' : '';
+      if (ratio <= 1.3) K.done('ols-eye');
+      if (ratio <= 1.08) K.done('ols-eye-pro');
+      note(lab, ratio <= 1.08 ? '<b>Excellent — within ' + Math.round((ratio - 1) * 100) + '% of the best line.</b> Now imagine doing this for 50 variables. We need a method, not an eye.' :
+        'Your line scores <b>' + Math.round((ratio - 1) * 100) + '% worse</b> than the best possible line.', ratio <= 1.08 ? 'good' : ratio <= 1.3 ? 'warn' : '');
+      s && s.redraw();
+    }
+    s = K.canvas(el, function (ctx, w, h) {
+      var c = K.col(), F = plotFrame(ctx, w, h), l = line();
+      ctx.strokeStyle = K.rgba(c.bad, 0.4); ctx.lineWidth = 1.5;
+      for (var i = 0; i < T.length; i++) { ctx.beginPath(); ctx.moveTo(F.X(T[i]), F.Y(S[i])); ctx.lineTo(F.X(T[i]), F.Y(l.w * T[i] + l.b)); ctx.stroke(); }
+      drawLine(ctx, F, l.w, l.b, c.hl, 3);
+      points(ctx, F, T, S, c);
+      for (var j = 0; j < 2; j++) K.dot(ctx, F.X(hx[j]), F.Y(hy[j]), 9, c.bg, c.hl);
     });
-
-    interceptSlider.addEventListener('input', (e) => {
-      candidate.c = parseFloat(e.target.value);
-      document.getElementById('intercept-val').textContent = candidate.c.toFixed(2);
-      onCandidateLineChanged();
+    K.drag(s, el, function (p, start) {
+      var F = { X: K.scale(XD[0], XD[1], 38, s.w - 12), Y: K.scale(YD[0], YD[1], s.h - 26, 12) };
+      if (start) active = Math.abs(p.x - F.X(hx[0])) < Math.abs(p.x - F.X(hx[1])) ? 0 : 1;
+      hy[active] = Math.max(YD[0], Math.min(YD[1], F.Y.inv(p.y))); update();
     });
-  }
+    function reset() { hy = [250, 250]; update(); }
+    $(lab, '[data-reset]').addEventListener('click', reset);
+    reset();
+  })();
 
-  function setupControls() {
-    document.getElementById('btn-reset-points').addEventListener('click', () => {
-      points = [
-        { x: 2.0, y: 3.0, id: 1 },
-        { x: 4.0, y: 5.0, id: 2 },
-        { x: 5.0, y: 4.0, id: 3 },
-        { x: 7.0, y: 8.0, id: 4 },
-        { x: 8.0, y: 7.0, id: 5 }
-      ];
-      pointIdCounter = 6;
-      recalculateOLS();
-    });
-
-    document.getElementById('btn-clear-points').addEventListener('click', () => {
-      points = [];
-      recalculateOLS();
-    });
-
-    document.getElementById('btn-preset-linear').addEventListener('click', () => {
-      points = [
-        { x: 1.0, y: 2.0, id: 1 },
-        { x: 3.0, y: 4.0, id: 2 },
-        { x: 5.0, y: 6.0, id: 3 },
-        { x: 7.0, y: 8.0, id: 4 },
-        { x: 9.0, y: 10.0, id: 5 }
-      ];
-      pointIdCounter = 6;
-      recalculateOLS();
-    });
-
-    document.getElementById('btn-preset-outlier').addEventListener('click', () => {
-      points = [
-        { x: 2.0, y: 3.0, id: 1 },
-        { x: 4.0, y: 5.0, id: 2 },
-        { x: 5.0, y: 4.0, id: 3 },
-        { x: 7.0, y: 8.0, id: 4 },
-        { x: 8.0, y: 1.0, id: 5 } // Classic outlier
-      ];
-      pointIdCounter = 6;
-      recalculateOLS();
-    });
-  }
-
-  function setupGDControls() {
-    document.getElementById('btn-run-gd').addEventListener('click', startGradientDescent);
-    document.getElementById('btn-stop-gd').addEventListener('click', stopGradientDescent);
-    document.getElementById('btn-reset-gd').addEventListener('click', () => {
-      gd.path = [];
-      gd.beta0 = candidate.c;
-      gd.beta1 = candidate.m;
-      drawLossSurface();
-    });
-
-    // Click on loss canvas to move candidate point
-    const lossCanvas = document.getElementById('loss-canvas');
-    lossCanvas.addEventListener('mousedown', (e) => {
-      const rect = lossCanvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-
-      // Translate canvas px to intercepts/slopes
-      // Canvas Intercept: horizontal, min=-3, max=13
-      // Canvas Slope: vertical, min=-3, max=3 (flipped because y goes down)
-      const c = -3.0 + (clickX / rect.width) * 16.0;
-      const m = 3.0 - (clickY / rect.height) * 6.0;
-
-      // Update candidate & sliders
-      candidate.c = Math.max(-3, Math.min(13, c));
-      candidate.m = Math.max(-3, Math.min(3, m));
-
-      document.getElementById('slope-slider').value = candidate.m;
-      document.getElementById('slope-val').textContent = candidate.m.toFixed(2);
-      document.getElementById('intercept-slider').value = candidate.c;
-      document.getElementById('intercept-val').textContent = candidate.c.toFixed(2);
-
-      gd.beta0 = candidate.c;
-      gd.beta1 = candidate.m;
-      gd.path = [];
-
-      onCandidateLineChanged();
-      if (activeStep === 2) drawLossSurface();
-    });
-  }
-
-  // ─── COORDINATE TRANSLATION HELPERS ───
-  function mathToScreen(x, y) {
-    const screenX = padding.left + (x / 10) * (svgWidth - padding.left - padding.right);
-    const screenY = svgHeight - padding.bottom - (y / 10) * (svgHeight - padding.top - padding.bottom);
-    return { x: screenX, y: screenY };
-  }
-
-  function screenToMath(screenX, screenY) {
-    let x = ((screenX - padding.left) / (svgWidth - padding.left - padding.right)) * 10;
-    let y = ((svgHeight - padding.bottom - screenY) / (svgHeight - padding.top - padding.bottom)) * 10;
-    // Clamp to boundaries
-    x = Math.max(0, Math.min(10, x));
-    y = Math.max(0, Math.min(10, y));
-    return { x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)) };
-  }
-
-  // ─── PLAYGROUND SVG SETUP & DRAG-AND-DROP ───
-  let dragPointId = null;
-
-  function setupPlaygroundSVG() {
-    const svg = document.getElementById('playground-svg');
-    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    
-    // Background click sensor
-    bgRect.setAttribute('width', svgWidth);
-    bgRect.setAttribute('height', svgHeight);
-    bgRect.setAttribute('fill', 'transparent');
-    bgRect.addEventListener('mousedown', (e) => {
-      if (e.target === bgRect) {
-        const rect = svg.getBoundingClientRect();
-        const px = e.clientX - rect.left;
-        const py = e.clientY - rect.top;
-        const mathPt = screenToMath(px, py);
-        
-        // Add point
-        points.push({ x: mathPt.x, y: mathPt.y, id: pointIdCounter++ });
-        recalculateOLS();
+  /* ═════ Lab 1 — the squares ═════ */
+  (function () {
+    var lab = document.getElementById('lab-squares'); if (!lab) return;
+    var el = $(lab, 'canvas'), s, w = 5, b = 100, showSq = false, outlier = false;
+    var OX = 14.5, OY = 345;
+    function data() { return outlier ? { x: T.concat([OX]), y: S.concat([OY]) } : { x: T, y: S }; }
+    function update() {
+      var d = data(), best = fit(d.x, d.y), e = sse(d.x, d.y, w, b);
+      var m = out(lab, 'sse', Math.round(e).toLocaleString()); m.className = e < 13000 && !outlier ? 'good' : '';
+      out(lab, 'best', Math.round(best.sse).toLocaleString());
+      if (!outlier && e < 13000) K.done('ols-sq-min');
+      if (outlier) note(lab, 'One unusual day (a festival?) pulls the best line: its slope drops from <b>' + BEST.w.toFixed(2) + '</b> to <b>' + best.w.toFixed(2) + '</b> and it tilts towards the outlier. Its square alone is huge.', 'warn');
+      else if (showSq) note(lab, 'The SSE is the total purple area. Each square\'s side is one residual.' + (e < 13000 ? ' <b>Nice — below 13,000.</b>' : ''), e < 13000 ? 'good' : '');
+      else note(lab, 'Adjust the sliders to shrink the total error.');
+      s && s.redraw();
+    }
+    s = K.canvas(el, function (ctx, cw, ch) {
+      var c = K.col(), F = plotFrame(ctx, cw, ch), d = data(), best = fit(d.x, d.y);
+      var pxPerUnit = (ch - 38) / (YD[1] - YD[0]);
+      for (var i = 0; i < d.x.length; i++) {
+        var yh = w * d.x[i] + b, r = d.y[i] - yh, px = F.X(d.x[i]), py = F.Y(d.y[i]), pyh = F.Y(yh);
+        if (showSq) {
+          var side = Math.abs(r) * pxPerUnit;
+          ctx.fillStyle = K.rgba(c.accent, 0.14); ctx.strokeStyle = K.rgba(c.accent, 0.55); ctx.lineWidth = 1;
+          ctx.fillRect(px, Math.min(py, pyh), side, side); ctx.strokeRect(px, Math.min(py, pyh), side, side);
+        } else { ctx.strokeStyle = K.rgba(c.bad, 0.45); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, pyh); ctx.stroke(); }
       }
+      if (outlier) drawLine(ctx, F, best.w, best.b, c.muted, 2, [7, 5]);
+      drawLine(ctx, F, w, b, c.hl, 3);
+      points(ctx, F, T, S, c);
+      if (outlier) { K.dot(ctx, F.X(OX), F.Y(OY), 6, c.bad, c.bg); K.text(ctx, 'outlier', F.X(OX) + 10, F.Y(OY) + 4, c.bad, '600 11px Inter, sans-serif'); }
     });
-    svg.insertBefore(bgRect, svg.firstChild);
+    K.slider(lab, 'w', function (v) { w = v; out(lab, 'wv', v.toFixed(1)); update(); });
+    K.slider(lab, 'b', function (v) { b = v; out(lab, 'bv', v); update(); });
+    $(lab, '[data-in="sq"]').addEventListener('change', function (e) { showSq = e.target.checked; if (showSq) K.done('ols-sq-show'); update(); });
+    $(lab, '[data-in="out"]').addEventListener('change', function (e) { outlier = e.target.checked; if (outlier) K.done('ols-sq-out'); update(); });
+    $(lab, '[data-reset]').addEventListener('click', function () {
+      K.setSlider(lab, 'w', 5); K.setSlider(lab, 'b', 100);
+      $(lab, '[data-in="sq"]').checked = false; $(lab, '[data-in="out"]').checked = false; showSq = outlier = false; update();
+    });
+    update();
+  })();
 
-    // Mouse Move & Up listeners on document to handle robust dragging
-    document.addEventListener('mousemove', (e) => {
-      if (dragPointId !== null) {
-        const rect = svg.getBoundingClientRect();
-        const px = e.clientX - rect.left;
-        const py = e.clientY - rect.top;
-        const mathPt = screenToMath(px, py);
+  /* ═════ Lab 2 — drag the data ═════ */
+  (function () {
+    var lab = document.getElementById('lab-formula'); if (!lab) return;
+    var el = $(lab, 'canvas'), s, ys, xs, pick = -1, moved = 0, w0 = 0;
+    function update() {
+      var f = fit(xs, ys);
+      out(lab, 'mx', f.mx.toFixed(2) + ' °C'); out(lab, 'my', f.my.toFixed(1));
+      out(lab, 'sxy', f.sxy.toFixed(0)); out(lab, 'sxx', f.sxx.toFixed(1));
+      out(lab, 'w', f.w.toFixed(3)); out(lab, 'b', f.b.toFixed(2));
+      s && s.redraw();
+      return f;
+    }
+    s = K.canvas(el, function (ctx, w, h) {
+      var c = K.col(), F = plotFrame(ctx, w, h), f = fit(xs, ys);
+      drawLine(ctx, F, f.w, f.b, c.hl, 3);
+      points(ctx, F, xs, ys, c);
+      if (pick >= 0) K.dot(ctx, F.X(xs[pick]), F.Y(ys[pick]), 8, c.accent2, c.text);
+      var mx = F.X(f.mx), my = F.Y(f.my);
+      ctx.strokeStyle = c.text; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(mx - 8, my); ctx.lineTo(mx + 8, my); ctx.moveTo(mx, my - 8); ctx.lineTo(mx, my + 8); ctx.stroke();
+      K.text(ctx, '(x̄, ȳ)', mx + 10, my - 8, c.text2);
+    });
+    K.drag(s, el, function (p, start, end) {
+      var F = { X: K.scale(XD[0], XD[1], 38, s.w - 12), Y: K.scale(YD[0], YD[1], s.h - 26, 12) };
+      if (start) {
+        pick = -1; var bestD = 30;
+        for (var i = 0; i < xs.length; i++) { var d = Math.hypot(F.X(xs[i]) - p.x, F.Y(ys[i]) - p.y); if (d < bestD) { bestD = d; pick = i; } }
+        moved = 0; w0 = fit(xs, ys).w;
+      }
+      if (pick < 0) return;
+      var ny = Math.max(YD[0], Math.min(YD[1], F.Y.inv(p.y)));
+      moved += Math.abs(ny - ys[pick]); ys[pick] = ny;
+      var f = update(), dx = Math.abs(xs[pick] - f.mx), dw = f.w - w0;
+      if (moved > 40) {
+        if (dx < 3) { K.done('ols-f-mid'); note(lab, 'A point near the middle moved the line up or down but the slope changed by only <b>' + fmt(dw, 2) + '</b>. It has little leverage.'); }
+        else if (dx > 8) { K.done('ols-f-edge'); note(lab, 'An edge point swung the slope by <b>' + fmt(dw, 2) + '</b>. Points far from x̄ have high leverage: they act like a long lever.', 'warn'); }
+      }
+      if (end) pick = -1, s.redraw();
+    });
+    function reset() { xs = T.slice(); ys = S.slice(); pick = -1; update(); note(lab, 'The ✚ marks the average point (x̄, ȳ). The best line always goes through it.'); }
+    $(lab, '[data-reset]').addEventListener('click', reset);
+    reset();
+  })();
 
-        // Update point coords
-        const pt = points.find(p => p.id === dragPointId);
-        if (pt) {
-          pt.x = mathPt.x;
-          pt.y = mathPt.y;
-          recalculateOLS();
+  /* ═════ Lab 3 — the loss bowl ═════ */
+  (function () {
+    var lab = document.getElementById('lab-bowl'); if (!lab) return;
+    var WD = [2, 14], BD = [-100, 200], cur, path = [], player;
+    var sd = Math.sqrt(BEST.sxx / T.length);
+    var heat = null, heatTheme = '';
+    function update() {
+      var e = sse(T, S, cur.w, cur.b);
+      out(lab, 'w', cur.w.toFixed(2)); out(lab, 'b', cur.b.toFixed(1));
+      var m = out(lab, 'sse', Math.round(e).toLocaleString()); m.className = e <= BEST.sse * 1.05 ? 'good' : '';
+      fitC.redraw(); bowlC.redraw();
+      return e;
+    }
+    var fitC = K.canvas($(lab, '[data-c="fit"]'), function (ctx, w, h) {
+      var c = K.col(), F = plotFrame(ctx, w, h);
+      drawLine(ctx, F, BEST.w, BEST.b, K.rgba(c.good, 0.6), 2, [6, 5]);
+      drawLine(ctx, F, cur.w, cur.b, c.hl, 3);
+      points(ctx, F, T, S, c);
+    });
+    function bowlFrame(w, h) { return { X: K.scale(WD[0], WD[1], 34, w - 10), Y: K.scale(BD[0], BD[1], h - 24, 10) }; }
+    var bowlC = K.canvas($(lab, '[data-c="bowl"]'), function (ctx, w, h) {
+      var c = K.col(), F = bowlFrame(w, h);
+      // Heat map of log(SSE), cached per size/theme
+      var key = w + 'x' + h + c.accent;
+      if (!heat || heatTheme !== key) {
+        var gw = 240, gh = 180, off = document.createElement('canvas'); off.width = gw; off.height = gh;
+        var octx = off.getContext('2d'), img = octx.createImageData(gw, gh);
+        var hex = c.accent.replace('#', ''); if (hex.length === 3) hex = hex.replace(/./g, '$&$&');
+        var rr = parseInt(hex.slice(0, 2), 16), gg = parseInt(hex.slice(2, 4), 16), bb = parseInt(hex.slice(4, 6), 16);
+        // Banded shading so contour rings (and the bottom) are visible
+        var lo = Math.log(BEST.sse), hi = Math.log(BEST.sse * 40), bands = 9;
+        for (var j = 0; j < gh; j++) for (var i = 0; i < gw; i++) {
+          var wv = WD[0] + (i + 0.5) / gw * (WD[1] - WD[0]), bv = BD[1] - (j + 0.5) / gh * (BD[1] - BD[0]);
+          var t = Math.max(0, Math.min(1, (Math.log(sse(T, S, wv, bv)) - lo) / (hi - lo)));
+          t = Math.min(1, Math.floor(Math.sqrt(t) * bands) / bands);
+          var k = (j * gw + i) * 4; img.data[k] = rr; img.data[k + 1] = gg; img.data[k + 2] = bb; img.data[k + 3] = Math.round((1 - t) * 215 + 12);
         }
+        octx.putImageData(img, 0, 0); heat = off; heatTheme = key;
+      }
+      ctx.imageSmoothingEnabled = false; ctx.drawImage(heat, F.X(WD[0]), F.Y(BD[1]), F.X(WD[1]) - F.X(WD[0]), F.Y(BD[0]) - F.Y(BD[1]));
+      K.text(ctx, 'w →', w - 30, h - 8, c.muted); K.text(ctx, 'b ↑', 38, 22, c.text2);
+      [4, 8, 12].forEach(function (v) { K.text(ctx, v, F.X(v), h - 8, c.muted, null, 'center'); });
+      [-50, 50, 150].forEach(function (v) { K.text(ctx, v, 28, F.Y(v) + 4, c.muted, null, 'right'); });
+      K.text(ctx, '★', F.X(BEST.w), F.Y(BEST.b) + 5, c.good, '15px sans-serif', 'center');
+      if (path.length > 1) {
+        ctx.strokeStyle = c.accent2; ctx.lineWidth = 2; ctx.beginPath();
+        path.forEach(function (p, i) { i ? ctx.lineTo(F.X(p[0]), F.Y(p[1])) : ctx.moveTo(F.X(p[0]), F.Y(p[1])); }); ctx.stroke();
+      }
+      K.dot(ctx, F.X(cur.w), F.Y(cur.b), 7, c.hl, c.bg);
+    });
+    var bowlEl = $(lab, '[data-c="bowl"]');
+    bowlEl.addEventListener('pointerdown', function (e) {
+      player.stop(); var p = bowlC.point(e), F = bowlFrame(bowlC.w, bowlC.h);
+      cur = { w: Math.max(WD[0], Math.min(WD[1], F.X.inv(p.x))), b: Math.max(BD[0], Math.min(BD[1], F.Y.inv(p.y))) }; path = [];
+      var e2 = update();
+      if (e2 <= BEST.sse * 1.05) { K.done('ols-b-click'); note(lab, '<b>That\'s the bottom of the bowl</b> — SSE within ' + Math.max(0, Math.round((e2 / BEST.sse - 1) * 100)) + '% of the best.', 'good'); }
+      else note(lab, 'SSE here is ' + (e2 / BEST.sse).toFixed(1) + '× the best. Look for the darkest spot.');
+    });
+    // Gradient descent on standardized temperature: y ≈ a·z + c, z = (x − x̄)/σ
+    function gdStep() {
+      var a = cur.w * sd, cc = cur.b + cur.w * BEST.mx, ga = 0, gc = 0, n = T.length;
+      for (var i = 0; i < n; i++) { var z = (T[i] - BEST.mx) / sd, r = a * z + cc - S[i]; ga += 2 * r * z / n; gc += 2 * r / n; }
+      a -= 0.1 * ga; cc -= 0.1 * gc;
+      cur = { w: a / sd, b: cc - (a / sd) * BEST.mx }; path.push([cur.w, cur.b]);
+      return Math.hypot(ga, gc);
+    }
+    player = K.player($(lab, '[data-act="gd"]'), 60, function () {
+      var g = gdStep(), e = update();
+      if (g < 0.05 || path.length > 400) {
+        if (Math.abs(e / BEST.sse - 1) < 0.005) { K.done('ols-b-gd'); note(lab, '<b>Gradient descent stopped at w = ' + cur.w.toFixed(3) + ', b = ' + cur.b.toFixed(2) + '</b> — the same line the formula gives (w = ' + BEST.w.toFixed(3) + ', b = ' + BEST.b.toFixed(2) + '), after ' + path.length + ' steps.', 'good'); }
+        return false;
       }
     });
+    K.on(lab, 'gd', function () { player.toggle(function () { path = [[cur.w, cur.b]]; }); });
+    K.on(lab, 'solve', function () { player.stop(); path = []; cur = { w: BEST.w, b: BEST.b }; update(); note(lab, 'The formula lands on the bottom in one jump: <b>w = ' + BEST.w.toFixed(3) + ', b = ' + BEST.b.toFixed(2) + '</b>.', 'good'); });
+    function reset() { player && player.stop(); cur = { w: 3.5, b: 150 }; path = []; update(); note(lab, 'Left: the data and your line (dashed green is the best). Right: the SSE landscape over (w, b) — darker is lower. Click the map to pick a line.'); }
+    $(lab, '[data-reset]').addEventListener('click', reset);
+    reset();
+  })();
 
-    document.addEventListener('mouseup', () => {
-      dragPointId = null;
-    });
-
-    // Render Grid lines once
-    const gridGroup = document.getElementById('grid-group');
-    gridGroup.innerHTML = '';
-
-    // Draw grid lines
-    for (let i = 0; i <= 10; i++) {
-      const vertical = mathToScreen(i, 0);
-      const verticalTop = mathToScreen(i, 10);
-      const horizontal = mathToScreen(0, i);
-      const horizontalRight = mathToScreen(10, i);
-
-      // X grid
-      const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      vLine.setAttribute('x1', vertical.x);
-      vLine.setAttribute('y1', vertical.y);
-      vLine.setAttribute('x2', verticalTop.x);
-      vLine.setAttribute('y2', verticalTop.y);
-      vLine.setAttribute('class', i === 0 ? 'axis-line' : 'grid-line');
-      gridGroup.appendChild(vLine);
-
-      // Y grid
-      const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      hLine.setAttribute('x1', horizontal.x);
-      hLine.setAttribute('y1', horizontal.y);
-      hLine.setAttribute('x2', horizontalRight.x);
-      hLine.setAttribute('y2', horizontalRight.y);
-      hLine.setAttribute('class', i === 0 ? 'axis-line' : 'grid-line');
-      gridGroup.appendChild(hLine);
-
-      // X axis labels
-      if (i > 0 && i < 10) {
-        const xText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        xText.setAttribute('x', vertical.x);
-        xText.setAttribute('y', vertical.y + 18);
-        xText.setAttribute('class', 'axis-label');
-        xText.setAttribute('text-anchor', 'middle');
-        xText.textContent = i;
-        gridGroup.appendChild(xText);
-      }
-
-      // Y axis labels
-      if (i > 0 && i < 10) {
-        const yText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        yText.setAttribute('x', horizontal.x - 10);
-        yText.setAttribute('y', horizontal.y + 4);
-        yText.setAttribute('class', 'axis-label');
-        yText.setAttribute('text-anchor', 'end');
-        yText.textContent = i;
-        gridGroup.appendChild(yText);
-      }
+  /* ─── Tiny linear algebra for the matrix labs ─── */
+  function matT(A) { return A[0].map(function (_, j) { return A.map(function (r) { return r[j]; }); }); }
+  function matMul(A, B) { return A.map(function (r) { return B[0].map(function (_, j) { return r.reduce(function (s, v, k) { return s + v * B[k][j]; }, 0); }); }); }
+  function solve(A, y) {
+    var m = A.length, M = A.map(function (r, i) { return r.concat([y[i]]); });
+    for (var c = 0; c < m; c++) {
+      var p = c; for (var r = c + 1; r < m; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      var tmp = M[c]; M[c] = M[p]; M[p] = tmp;
+      for (r = 0; r < m; r++) { if (r === c) continue; var f = M[r][c] / M[c][c]; for (var k = c; k <= m; k++) M[r][k] -= f * M[c][k]; }
     }
+    return M.map(function (r, i) { return r[m] / r[i]; });
+  }
+  function matHTML(rows, opts) {
+    opts = opts || {};
+    var cols = rows[0].length;
+    return '<div class="mat-wrap"><div class="mat" style="grid-template-columns:repeat(' + cols + ',auto)">' +
+      rows.map(function (r, i) { return r.map(function (v, j) { var cls = (opts.hlCol === j ? 'hl2' : '') + (typeof v === 'string' ? ' dim' : ''); return '<span class="' + cls + '">' + (typeof v === 'string' ? v : fmt(v, opts.d == null ? 2 : opts.d)) + '</span>'; }).join(''); }).join('') +
+      '</div><span class="mat-cap">' + opts.cap + '</span></div>';
   }
 
-  // ─── MATHEMATICAL ENGINE ───
-  function recalculateOLS() {
-    const n = points.length;
-
-    if (n < 2) {
-      optimal.beta1 = 0;
-      optimal.beta0 = 0;
-      optimal.ssr = 0;
-    } else {
-      let sumX = 0, sumY = 0;
-      points.forEach(p => { sumX += p.x; sumY += p.y; });
-      const meanX = sumX / n;
-      const meanY = sumY / n;
-
-      let num = 0; // Covariance numerator
-      let den = 0; // Variance denominator (for x)
-      points.forEach(p => {
-        num += (p.x - meanX) * (p.y - meanY);
-        den += Math.pow(p.x - meanX, 2);
-      });
-
-      if (den === 0) {
-        optimal.beta1 = 0;
-      } else {
-        optimal.beta1 = num / den;
-      }
-      optimal.beta0 = meanY - optimal.beta1 * meanX;
-
-      // Compute optimal SSR
-      let ssr = 0;
-      points.forEach(p => {
-        const pred = optimal.beta1 * p.x + optimal.beta0;
-        ssr += Math.pow(p.y - pred, 2);
-      });
-      optimal.ssr = ssr;
+  /* ═════ Lab 4 — matrix form ═════ */
+  (function () {
+    var lab = document.getElementById('lab-matrix'); if (!lab) return;
+    var el = $(lab, 'canvas'), s, useWk = false, temp = 25, predWk = false, beta;
+    function solveModel() {
+      var X = T.map(function (t, i) { return useWk ? [1, t, WK[i]] : [1, t]; });
+      var Xt = matT(X), XtX = matMul(Xt, X), Xty = matMul(Xt, S.map(function (v) { return [v]; })).map(function (r) { return r[0]; });
+      beta = solve(XtX, Xty);
+      var pred = X.map(function (r) { return r.reduce(function (sum, v, k) { return sum + v * beta[k]; }, 0); });
+      var res = S.map(function (y, i) { return y - pred[i]; });
+      var Xtr = matMul(Xt, res.map(function (v) { return [v]; })).map(function (r) { return r[0]; });
+      var sseV = res.reduce(function (a, r) { return a + r * r; }, 0), my = S.reduce(function (a, b) { return a + b; }) / S.length;
+      var sst = S.reduce(function (a, y) { return a + (y - my) * (y - my); }, 0);
+      return { X: X, XtX: XtX, Xty: Xty, Xtr: Xtr, sse: sseV, r2: 1 - sseV / sst };
     }
-
-    // Sync other components and variables
-    onCandidateLineChanged();
-    syncUI();
-  }
-
-  function onCandidateLineChanged() {
-    let candidateSsr = 0;
-    points.forEach(p => {
-      const pred = candidate.m * p.x + candidate.c;
-      candidateSsr += Math.pow(p.y - pred, 2);
+    function update() {
+      var m = solveModel();
+      var p = beta[0] + beta[1] * temp + (useWk && predWk ? beta[2] : 0);
+      out(lab, 'pred', Math.round(p)); out(lab, 'tv', temp + ' °C');
+      var r2 = out(lab, 'r2', m.r2.toFixed(3)); r2.className = m.r2 > 0.95 ? 'good' : '';
+      out(lab, 'sse', Math.round(m.sse).toLocaleString());
+      var head = m.X.slice(0, 4).concat([m.X[0].map(function () { return '⋮'; })]);
+      $(lab, '[data-out="mats"]').innerHTML =
+        matHTML(head, { cap: 'X (18 × ' + beta.length + ')', d: 1, hlCol: useWk ? 2 : -1 }) + '<span class="mat-op">·</span>' +
+        matHTML(beta.map(function (v) { return [v]; }), { cap: 'β' }) + '<span class="mat-op">&nbsp;&nbsp;</span>' +
+        matHTML(m.XtX, { cap: 'XᵀX', d: 1 }) + matHTML(m.Xty.map(function (v) { return [v]; }), { cap: 'Xᵀy', d: 0 }) +
+        matHTML(m.Xtr.map(function (v) { return [Math.abs(v) < 1e-6 ? 0 : v]; }), { cap: 'Xᵀr (≈ 0)', d: 4 });
+      if (useWk) {
+        K.done('ols-m-add');
+        if (temp >= 30 && predWk) { K.done('ols-m-pred'); note(lab, 'Prediction: <b>' + beta[0].toFixed(1) + ' + ' + beta[1].toFixed(2) + ' × ' + temp + ' + ' + beta[2].toFixed(1) + ' × 1 ≈ ' + Math.round(p) + '</b> ice creams. Each coefficient is "how much this feature adds".', 'good'); }
+        else note(lab, 'With the weekend column, β₂ ≈ <b>' + beta[2].toFixed(1) + '</b>: weekends sell about ' + Math.round(beta[2]) + ' more at the same temperature. R² jumped to ' + m.r2.toFixed(3) + '.', 'good');
+      } else note(lab, 'One feature (temperature). Weekend days are drawn as squares — notice they sit above the line.');
+      s && s.redraw();
+    }
+    s = K.canvas(el, function (ctx, w, h) {
+      var c = K.col(), F = plotFrame(ctx, w, h);
+      if (!beta) return;
+      if (useWk) { drawLine(ctx, F, beta[1], beta[0] + beta[2], c.hl, 2.5); drawLine(ctx, F, beta[1], beta[0], c.accent2, 2.5); K.text(ctx, 'weekend', F.X(12), F.Y(beta[0] + beta[2] + beta[1] * 12) - 8, c.hl, '600 11px Inter, sans-serif'); K.text(ctx, 'weekday', F.X(30), F.Y(beta[0] + beta[1] * 30) + 18, c.accent2, '600 11px Inter, sans-serif'); }
+      else drawLine(ctx, F, beta[1], beta[0], c.accent, 2.5);
+      points(ctx, F, T, S, c, true);
+      var p = beta[0] + beta[1] * temp + (useWk && predWk ? beta[2] : 0);
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = c.text2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(F.X(temp), h - 26); ctx.lineTo(F.X(temp), F.Y(p)); ctx.stroke(); ctx.setLineDash([]);
+      K.dot(ctx, F.X(temp), F.Y(p), 7, c.bg, c.text);
     });
+    $(lab, '[data-in="wk"]').addEventListener('change', function (e) { useWk = e.target.checked; update(); });
+    $(lab, '[data-in="pw"]').addEventListener('change', function (e) { predWk = e.target.checked; update(); });
+    K.slider(lab, 't', function (v) { temp = v; update(); });
+    $(lab, '[data-reset]').addEventListener('click', function () { $(lab, '[data-in="wk"]').checked = false; $(lab, '[data-in="pw"]').checked = false; useWk = predWk = false; K.setSlider(lab, 't', 25); });
+    update();
+  })();
 
-    // Update playground live loss comparison
-    document.getElementById('candidate-ssr-val').textContent = candidateSsr.toFixed(2);
-    document.getElementById('optimal-ssr-val').textContent = optimal.ssr.toFixed(2);
-
-    const maxSsrVal = Math.max(candidateSsr, optimal.ssr, 10.0);
-    const candWidth = (candidateSsr / maxSsrVal) * 100;
-    const optWidth = (optimal.ssr / maxSsrVal) * 100;
-
-    document.getElementById('candidate-ssr-bar').style.width = `${candWidth}%`;
-    document.getElementById('optimal-ssr-bar').style.width = `${optWidth}%`;
-
-    // Redraw lines on step 1
-    renderPlaygroundLines();
-  }
-
-  // ─── RENDERING & UI SYNC ───
-  function syncUI() {
-    renderPlaygroundPoints();
-    renderPlaygroundLines();
-
-    // Trigger step updates depending on what's shown
-    renderTabTabularSolver();
-    renderTabMatrixForm();
-    renderTabNormalEquation();
-    
-    if (activeStep === 2) drawLossSurface();
-    if (activeStep === 5) renderDiagnostics();
-  }
-
-  function renderPlaygroundPoints() {
-    const pointsGroup = document.getElementById('points-group');
-    pointsGroup.innerHTML = '';
-
-    points.forEach(p => {
-      const pos = mathToScreen(p.x, p.y);
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', pos.x);
-      circle.setAttribute('cy', pos.y);
-      circle.setAttribute('r', '7');
-      circle.setAttribute('class', 'data-point');
-      circle.setAttribute('data-id', p.id);
-
-      // Event: Drag point
-      circle.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        dragPointId = p.id;
-      });
-
-      // Event: Double click to delete
-      circle.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        points = points.filter(pt => pt.id !== p.id);
-        recalculateOLS();
-      });
-
-      // Hover sync with step 2 (Table) & step 4 (Matrix)
-      circle.addEventListener('mouseenter', () => {
-        highlightPointRow(p.id, true);
-      });
-      circle.addEventListener('mouseleave', () => {
-        highlightPointRow(p.id, false);
-      });
-
-      pointsGroup.appendChild(circle);
+  /* ═════ Lab 5 — diagnostics ═════ */
+  (function () {
+    var lab = document.getElementById('lab-diag'); if (!lab) return;
+    var r = K.rng(5), noise = function () { return (r() + r() + r() - 1.5) * 1.15; };
+    var xs = K.range(0.5, 10, 0.5);
+    var sets = {
+      good: { y: xs.map(function (x) { return 3 + 2 * x + noise() * 2; }), note: '<b>A — healthy.</b> The residuals form a shapeless band around zero. A straight line is the right model.', cls: 'good' },
+      curve: { y: xs.map(function (x) { return 2 + 0.3 * x * x + noise() * 1.2; }), note: '<b>B — curved.</b> Residuals make a U: positive at both ends, negative in the middle. The true relationship bends, so a line misses systematically — despite a high R².', cls: 'bad' },
+      fan: { y: xs.map(function (x) { return 3 + 2 * x + noise() * 0.6 * x; }), note: '<b>C — fanning out.</b> Errors grow as predictions grow (uneven noise, called <em>heteroscedasticity</em>). The line is okay on average, but its uncertainty is not the same everywhere.', cls: 'warn' },
+      outlier: { y: xs.map(function (x, i) { return i === 18 ? 1 : 3 + 2 * x + noise() * 1.5; }), note: '<b>D — outlier.</b> One point sits far from the rest and drags the line down at the right end. Check it: data error, or a genuinely unusual case?', cls: 'warn' }
+    };
+    var ds = 'good', seen = {};
+    function current() { var y = sets[ds].y, f = fit(xs, y); return { y: y, f: f }; }
+    function update() {
+      var d = current();
+      out(lab, 'r2', d.f.r2.toFixed(3)); out(lab, 'w', d.f.w.toFixed(2));
+      note(lab, sets[ds].note, sets[ds].cls);
+      seen[ds] = true; if (Object.keys(seen).length === 4) K.done('ols-d-all');
+      fitC.redraw(); resC.redraw();
+    }
+    var fitC = K.canvas($(lab, '[data-c="fit"]'), function (ctx, w, h) {
+      var c = K.col(), d = current(), F = K.frame(ctx, w, h, [0, 10.5], [0, 34], { xticks: [0, 5, 10], yticks: [0, 10, 20, 30], pl: 30 });
+      ctx.strokeStyle = c.hl; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(F.X(0), F.Y(d.f.b)); ctx.lineTo(F.X(10.5), F.Y(d.f.w * 10.5 + d.f.b)); ctx.stroke();
+      xs.forEach(function (x, i) { K.dot(ctx, F.X(x), F.Y(d.y[i]), 4, c.accent2); });
     });
-  }
-
-  function highlightPointRow(ptId, highlight) {
-    // Highlight in Tabular solver (Step 2)
-    const tableRow = document.getElementById(`row-${ptId}`);
-    if (tableRow) tableRow.classList.toggle('row-highlighted', highlight);
-
-    // Highlight in Matrix notation (Step 4)
-    const matYRow = document.getElementById(`mat-y-row-${ptId}`);
-    const matXRow = document.getElementById(`mat-x-row-${ptId}`);
-    const matERow = document.getElementById(`mat-e-row-${ptId}`);
-    if (matYRow) matYRow.classList.toggle('highlighted-row', highlight);
-    if (matXRow) matXRow.classList.toggle('highlighted-row', highlight);
-    if (matERow) matERow.classList.toggle('highlighted-row', highlight);
-
-    // Highlight in SVG Point
-    const ptCircle = document.querySelector(`circle[data-id="${ptId}"]`);
-    if (ptCircle) ptCircle.classList.toggle('highlighted-pt', highlight);
-  }
-
-  function renderPlaygroundLines() {
-    // 1. Draw optimal line
-    const optLine = document.getElementById('optimal-line');
-    if (points.length < 2) {
-      optLine.setAttribute('x1', 0); optLine.setAttribute('y1', 0);
-      optLine.setAttribute('x2', 0); optLine.setAttribute('y2', 0);
-    } else {
-      const p1 = mathToScreen(0, optimal.beta0);
-      const p2 = mathToScreen(10, optimal.beta1 * 10 + optimal.beta0);
-      optLine.setAttribute('x1', p1.x); optLine.setAttribute('y1', p1.y);
-      optLine.setAttribute('x2', p2.x); optLine.setAttribute('y2', p2.y);
-    }
-
-    // 2. Draw candidate line
-    const candLine = document.getElementById('candidate-line');
-    const cp1 = mathToScreen(0, candidate.c);
-    const cp2 = mathToScreen(10, candidate.m * 10 + candidate.c);
-    candLine.setAttribute('x1', cp1.x); candLine.setAttribute('y1', cp1.y);
-    candLine.setAttribute('x2', cp2.x); candLine.setAttribute('y2', cp2.y);
-
-    // 3. Draw residual connectors
-    const residualGroup = document.getElementById('residual-group');
-    residualGroup.innerHTML = '';
-
-    points.forEach(p => {
-      const ptPos = mathToScreen(p.x, p.y);
-      
-      // Candidate residual line (vertical line to candidate regression line)
-      const candYVal = candidate.m * p.x + candidate.c;
-      const candLineYPos = mathToScreen(p.x, candYVal);
-
-      const rCand = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      rCand.setAttribute('x1', ptPos.x);
-      rCand.setAttribute('y1', ptPos.y);
-      rCand.setAttribute('x2', candLineYPos.x);
-      rCand.setAttribute('y2', candLineYPos.y);
-      rCand.setAttribute('class', 'residual-line candidate');
-      residualGroup.appendChild(rCand);
-
-      // Optimal residual line
-      if (points.length >= 2) {
-        const optYVal = optimal.beta1 * p.x + optimal.beta0;
-        const optLineYPos = mathToScreen(p.x, optYVal);
-
-        const rOpt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        rOpt.setAttribute('x1', ptPos.x);
-        rOpt.setAttribute('y1', ptPos.y);
-        rOpt.setAttribute('x2', optLineYPos.x);
-        rOpt.setAttribute('y2', optLineYPos.y);
-        rOpt.setAttribute('class', 'residual-line optimal');
-        residualGroup.appendChild(rOpt);
-      }
+    var resC = K.canvas($(lab, '[data-c="res"]'), function (ctx, w, h) {
+      var c = K.col(), d = current(), preds = xs.map(function (x) { return d.f.w * x + d.f.b; });
+      var F = K.frame(ctx, w, h, [Math.min.apply(null, preds) - 1, Math.max.apply(null, preds) + 1], [-12, 12], { xticks: [], yticks: [-10, 0, 10], pl: 30, xlabel: 'prediction →', ylabel: 'residual' });
+      ctx.strokeStyle = c.muted; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(F.pl, F.Y(0)); ctx.lineTo(w - F.pr, F.Y(0)); ctx.stroke(); ctx.setLineDash([]);
+      xs.forEach(function (x, i) { var rr = d.y[i] - preds[i]; K.dot(ctx, F.X(preds[i]), F.Y(Math.max(-12, Math.min(12, rr))), 4, Math.abs(rr) > 8 ? c.bad : c.accent); });
     });
-  }
-
-  // ─── STEP 2: TABULAR SOLVER RENDERING ───
-  function renderTabTabularSolver() {
-    const tableBody = document.querySelector('#covariance-table tbody');
-    const tableFoot = document.querySelector('#covariance-table tfoot');
-    tableBody.innerHTML = '';
-    tableFoot.innerHTML = '';
-
-    const n = points.length;
-    if (n === 0) {
-      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted)">No data points. Add some in Step 1!</td></tr>';
-      return;
-    }
-
-    let sumX = 0, sumY = 0;
-    points.forEach(p => { sumX += p.x; sumY += p.y; });
-    const meanX = sumX / n;
-    const meanY = sumY / n;
-
-    let sumCov = 0;
-    let sumVarX = 0;
-
-    points.forEach((p, idx) => {
-      const dx = p.x - meanX;
-      const dy = p.y - meanY;
-      const prod = dx * dy;
-      const dx2 = dx * dx;
-
-      sumCov += prod;
-      sumVarX += dx2;
-
-      const row = document.createElement('tr');
-      row.id = `row-${p.id}`;
-      row.innerHTML = `
-        <td>${idx + 1}</td>
-        <td>${p.x.toFixed(2)}</td>
-        <td>${p.y.toFixed(2)}</td>
-        <td>${dx.toFixed(2)}</td>
-        <td>${dy.toFixed(2)}</td>
-        <td>${prod.toFixed(2)}</td>
-        <td>${dx2.toFixed(2)}</td>
-      `;
-
-      row.addEventListener('mouseenter', () => highlightPointRow(p.id, true));
-      row.addEventListener('mouseleave', () => highlightPointRow(p.id, false));
-
-      tableBody.appendChild(row);
-    });
-
-    // Populate tfoot
-    const footRow = document.createElement('tr');
-    footRow.innerHTML = `
-      <td>Sum (\(\sum\))</td>
-      <td>${sumX.toFixed(2)}</td>
-      <td>${sumY.toFixed(2)}</td>
-      <td>0.00</td>
-      <td>0.00</td>
-      <td>${sumCov.toFixed(2)}</td>
-      <td>${sumVarX.toFixed(2)}</td>
-    `;
-    tableFoot.appendChild(footRow);
-
-    // Render Averages below table
-    const meanRow = document.createElement('tr');
-    meanRow.style.background = 'transparent';
-    meanRow.innerHTML = `
-      <td>Averages</td>
-      <td>\(\bar{x} = \) ${meanX.toFixed(2)}</td>
-      <td>\(\bar{y} = \) ${meanY.toFixed(2)}</td>
-      <td colspan="4" style="border:none"></td>
-    `;
-    tableFoot.appendChild(meanRow);
-
-    // Update Direct Formulas Substitutions
-    const b1_sub = document.getElementById('beta1-calc-sub');
-    const b0_sub = document.getElementById('beta0-calc-sub');
-
-    if (n < 2) {
-      b1_sub.innerHTML = `Need at least 2 points to calculate regression.`;
-      b0_sub.innerHTML = ``;
-    } else {
-      b1_sub.innerHTML = `Substitute values: \\[ \\beta_1 = \\frac{${sumCov.toFixed(2)}}{${sumVarX.toFixed(2)}} = \\mathbf{${optimal.beta1.toFixed(4)}} \\]`;
-      b0_sub.innerHTML = `Substitute values: \\[ \\beta_0 = ${meanY.toFixed(2)} - (${optimal.beta1.toFixed(3)} \\cdot ${meanX.toFixed(2)}) = \\mathbf{${optimal.beta0.toFixed(4)}} \\]`;
-    }
-  }
-
-  // ─── STEP 3: LOSS SURFACE & GRADIENT DESCENT ───
-  function drawLossSurface() {
-    const canvas = document.getElementById('loss-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Define Grid limits for drawing the canvas pixels
-    // Intercept (beta0) on horizontal axis: from -3.0 to 13.0
-    // Slope (beta1) on vertical axis: from -3.0 to 3.0
-    const b0Min = -3.0, b0Max = 13.0;
-    const b1Min = -3.0, b1Max = 3.0;
-
-    const n = points.length;
-
-    // Generate heatmap pixels
-    const imgData = ctx.createImageData(width, height);
-    const data = imgData.data;
-
-    // Fast OLS helper
-    if (n >= 1) {
-      for (let py = 0; py < height; py++) {
-        // Invert Y axis
-        const beta1 = b1Max - (py / height) * (b1Max - b1Min);
-
-        for (let px = 0; px < width; px++) {
-          const beta0 = b0Min + (px / width) * (b0Max - b0Min);
-
-          // Calculate SSR at (beta0, beta1)
-          let loss = 0;
-          for (let i = 0; i < n; i++) {
-            const pred = beta1 * points[i].x + beta0;
-            loss += Math.pow(points[i].y - pred, 2);
-          }
-
-          // Map loss to color scale (blue=low, magenta/red=high)
-          // We apply a logarithmic or cubic power scale to make contours sharper near the minimum
-          const normLoss = Math.min(1.0, Math.pow(loss / (n * 35), 0.5)); // Normalized loss
-
-          const r = Math.floor(normLoss * 240);
-          const g = Math.floor(Math.max(0, 30 - normLoss * 30));
-          const b = Math.floor((1.0 - normLoss) * 180 + normLoss * 50);
-
-          const idx = (py * width + px) * 4;
-          data[idx] = r;      // R
-          data[idx + 1] = g;  // G
-          data[idx + 2] = b;  // B
-          data[idx + 3] = 255;// Alpha
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-    } else {
-      // Background gradient if no points
-      ctx.fillStyle = '#161b22';
-      ctx.fillRect(0, 0, width, height);
-    }
-
-    // Helper: translate mathematical values to canvas coordinates
-    function getCanvasCoords(b0, b1) {
-      const cx = ((b0 - b0Min) / (b0Max - b0Min)) * width;
-      const cy = ((b1Max - b1) / (b1Max - b1Min)) * height;
-      return { x: cx, y: cy };
-    }
-
-    // Draw contour lines if possible to represent gradient levels
-    // (Instead of drawing expensive dynamic vector contours, we can draw a couple circles centered at optimal OLS minimum)
-    if (n >= 2) {
-      const minCoords = getCanvasCoords(optimal.beta0, optimal.beta1);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 1;
-      for (let r = 20; r <= 150; r += 20) {
-        ctx.beginPath();
-        // Since parameters might scale unevenly, simple circles are fine for geometric representation
-        ctx.arc(minCoords.x, minCoords.y, r, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // Draw crosshair at target (Optimal analytical OLS minimum)
-      ctx.strokeStyle = '#2dd4bf'; // accent2
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      // Horizontal crosshair
-      ctx.moveTo(minCoords.x - 12, minCoords.y);
-      ctx.lineTo(minCoords.x + 12, minCoords.y);
-      // Vertical crosshair
-      ctx.moveTo(minCoords.x, minCoords.y - 12);
-      ctx.lineTo(minCoords.x, minCoords.y + 12);
-      ctx.stroke();
-
-      // Outer circle for optimal target
-      ctx.beginPath();
-      ctx.arc(minCoords.x, minCoords.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#2dd4bf';
-      ctx.fill();
-    }
-
-    // Draw manual candidate parameter point (Green dot)
-    const candCoords = getCanvasCoords(candidate.c, candidate.m);
-    ctx.fillStyle = '#7c83ff'; // var(--accent)
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(candCoords.x, candCoords.y, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw Gradient Descent Path
-    if (gd.path.length > 0) {
-      ctx.strokeStyle = '#fbbf24'; // var(--highlight) (orange path)
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      const start = getCanvasCoords(gd.path[0].beta0, gd.path[0].beta1);
-      ctx.moveTo(start.x, start.y);
-      for (let i = 1; i < gd.path.length; i++) {
-        const pt = getCanvasCoords(gd.path[i].beta0, gd.path[i].beta1);
-        ctx.lineTo(pt.x, pt.y);
-      }
-      ctx.stroke();
-
-      // Current running point of GD path if running
-      const curPt = gd.path[gd.path.length - 1];
-      const curCoords = getCanvasCoords(curPt.beta0, curPt.beta1);
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath();
-      ctx.arc(curCoords.x, curCoords.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function startGradientDescent() {
-    if (gd.running || points.length < 2) return;
-
-    gd.running = true;
-    document.getElementById('btn-run-gd').disabled = true;
-    document.getElementById('btn-stop-gd').disabled = false;
-
-    // Initialize gradient descent position to the current manual candidate line parameters
-    if (gd.path.length === 0) {
-      gd.beta0 = candidate.c;
-      gd.beta1 = candidate.m;
-      gd.path.push({ beta0: gd.beta0, beta1: gd.beta1 });
-    }
-
-    // Gradient descent hyper-parameter
-    // Since input coordinates are around [0, 10], learning rate needs to be carefully chosen
-    const alpha = 0.015; 
-    const n = points.length;
-
-    gd.interval = setInterval(() => {
-      // Compute partial derivatives
-      // Loss L = sum (y_i - (beta1 * x_i + beta0))^2
-      // dL/d_beta0 = -2/n * sum (y_i - (beta1 * x_i + beta0))
-      // dL/d_beta1 = -2/n * sum (y_i - (beta1 * x_i + beta0)) * x_i
-      let gradBeta0 = 0;
-      let gradBeta1 = 0;
-
-      for (let i = 0; i < n; i++) {
-        const p = points[i];
-        const error = p.y - (gd.beta1 * p.x + gd.beta0);
-        gradBeta0 += -error;
-        gradBeta1 += -error * p.x;
-      }
-
-      gradBeta0 = (2 / n) * gradBeta0;
-      gradBeta1 = (2 / n) * gradBeta1;
-
-      // Update parameters
-      gd.beta0 = gd.beta0 - alpha * gradBeta0;
-      gd.beta1 = gd.beta1 - alpha * gradBeta1;
-
-      gd.path.push({ beta0: gd.beta0, beta1: gd.beta1 });
-
-      // Live update of candidate line visually
-      candidate.c = gd.beta0;
-      candidate.m = gd.beta1;
-      
-      // Update inputs (without calling full render loops to keep performance clean)
-      document.getElementById('slope-slider').value = candidate.m;
-      document.getElementById('slope-val').textContent = candidate.m.toFixed(2);
-      document.getElementById('intercept-slider').value = candidate.c;
-      document.getElementById('intercept-val').textContent = candidate.c.toFixed(2);
-
-      onCandidateLineChanged();
-      drawLossSurface();
-
-      // Convergence criteria: stop if gradient is extremely tiny, or limit reached
-      const gradMagnitude = Math.sqrt(gradBeta0 * gradBeta0 + gradBeta1 * gradBeta1);
-      if (gradMagnitude < 0.001 || gd.path.length > 500) {
-        stopGradientDescent();
-      }
-    }, 50); // animate every 50ms
-  }
-
-  function stopGradientDescent() {
-    gd.running = false;
-    clearInterval(gd.interval);
-    document.getElementById('btn-run-gd').disabled = false;
-    document.getElementById('btn-stop-gd').disabled = true;
-  }
-
-  // ─── STEP 4: MATRIX FORM RENDERING ───
-  function renderTabMatrixForm() {
-    const matrixY = document.getElementById('matrix-y');
-    const matrixX = document.getElementById('matrix-x');
-    const matrixBeta = document.getElementById('matrix-beta');
-    const matrixE = document.getElementById('matrix-e');
-
-    if (!matrixY) return;
-
-    const n = points.length;
-    if (n === 0) {
-      matrixY.innerHTML = 'Empty';
-      matrixX.innerHTML = 'Empty';
-      matrixBeta.innerHTML = 'Empty';
-      matrixE.innerHTML = 'Empty';
-      return;
-    }
-
-    // 1. Vector y
-    let htmlY = '';
-    points.forEach(p => {
-      htmlY += `<div class="matrix-row" id="mat-y-row-${p.id}"><div class="matrix-cell">${p.y.toFixed(1)}</div></div>`;
-    });
-    matrixY.innerHTML = htmlY;
-
-    // 2. Design Matrix X
-    let htmlX = '';
-    points.forEach(p => {
-      htmlX += `<div class="matrix-row" id="mat-x-row-${p.id}">
-        <div class="matrix-cell">1.0</div>
-        <div class="matrix-cell">${p.x.toFixed(1)}</div>
-      </div>`;
-    });
-    matrixX.innerHTML = htmlX;
-
-    // 3. Coefficients Vector Beta
-    matrixBeta.innerHTML = `
-      <div class="matrix-row">
-        <div class="matrix-cell" title="Intercept (beta_0)">\\(\\beta_0 = \\) ${optimal.beta0.toFixed(2)}</div>
-      </div>
-      <div class="matrix-row">
-        <div class="matrix-cell" title="Slope (beta_1)">\\(\\beta_1 = \\) ${optimal.beta1.toFixed(2)}</div>
-      </div>
-    `;
-
-    // 4. Residual Vector Epsilon
-    let htmlE = '';
-    points.forEach(p => {
-      const pred = optimal.beta1 * p.x + optimal.beta0;
-      const res = p.y - pred;
-      htmlE += `<div class="matrix-row" id="mat-e-row-${p.id}"><div class="matrix-cell">${res.toFixed(2)}</div></div>`;
-    });
-    matrixE.innerHTML = htmlE;
-
-    // Attach mouse listeners to matrix rows for visual sync
-    points.forEach(p => {
-      const ptId = p.id;
-      const matYRow = document.getElementById(`mat-y-row-${ptId}`);
-      const matXRow = document.getElementById(`mat-x-row-${ptId}`);
-      const matERow = document.getElementById(`mat-e-row-${ptId}`);
-
-      const triggerHighlight = (highlight) => {
-        highlightPointRow(ptId, highlight);
-      };
-
-      [matYRow, matXRow, matERow].forEach(el => {
-        if (el) {
-          el.addEventListener('mouseenter', () => triggerHighlight(true));
-          el.addEventListener('mouseleave', () => triggerHighlight(false));
-        }
-      });
-    });
-  }
-
-  // ─── STEP 5: NORMAL EQUATION MATRIX ARITHMETIC ───
-  function renderTabNormalEquation() {
-    const n = points.length;
-    
-    const matXTX = document.getElementById('matrix-xtx');
-    const matXTXInv = document.getElementById('matrix-xtx-inv');
-    const matXTy = document.getElementById('matrix-xty');
-    const matBetaSolved = document.getElementById('matrix-beta-solved');
-
-    if (!matXTX) return;
-
-    if (n < 2) {
-      matXTX.innerHTML = 'Matrix undefined';
-      matXTXInv.innerHTML = 'Matrix undefined';
-      matXTy.innerHTML = 'Matrix undefined';
-      matBetaSolved.innerHTML = 'Matrix undefined';
-      return;
-    }
-
-    // 1. Calculate X^T X
-    // X^T X = [[n, sum(x)], [sum(x), sum(x^2)]]
-    let sumX = 0;
-    let sumX2 = 0;
-    let sumY = 0;
-    let sumXY = 0;
-
-    points.forEach(p => {
-      sumX += p.x;
-      sumX2 += p.x * p.x;
-      sumY += p.y;
-      sumXY += p.x * p.y;
-    });
-
-    const xtx_00 = n;
-    const xtx_01 = sumX;
-    const xtx_10 = sumX;
-    const xtx_11 = sumX2;
-
-    matXTX.innerHTML = `
-      <div class="matrix-row">
-        <div class="matrix-cell">${xtx_00.toFixed(1)}</div>
-        <div class="matrix-cell">${xtx_01.toFixed(1)}</div>
-      </div>
-      <div class="matrix-row">
-        <div class="matrix-cell">${xtx_10.toFixed(1)}</div>
-        <div class="matrix-cell">${xtx_11.toFixed(1)}</div>
-      </div>
-    `;
-
-    // 2. Invert X^T X
-    // Det = ad - bc
-    const det = xtx_00 * xtx_11 - xtx_01 * xtx_10;
-    document.getElementById('determinant-val').textContent = det.toFixed(2);
-
-    if (det === 0) {
-      matXTXInv.innerHTML = 'Singular matrix (No inverse!)';
-    } else {
-      const inv_00 = xtx_11 / det;
-      const inv_01 = -xtx_01 / det;
-      const inv_10 = -xtx_10 / det;
-      const inv_11 = xtx_00 / det;
-
-      matXTXInv.innerHTML = `
-        <div class="matrix-row">
-          <div class="matrix-cell">${inv_00.toFixed(4)}</div>
-          <div class="matrix-cell">${inv_01.toFixed(4)}</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-cell">${inv_10.toFixed(4)}</div>
-          <div class="matrix-cell">${inv_11.toFixed(4)}</div>
-        </div>
-      `;
-
-      // 3. X^T y = [[sum(y)], [sum(xy)]]
-      const xty_0 = sumY;
-      const xty_1 = sumXY;
-
-      matXTy.innerHTML = `
-        <div class="matrix-row">
-          <div class="matrix-cell">${xty_0.toFixed(1)}</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-cell">${xty_1.toFixed(1)}</div>
-        </div>
-      `;
-
-      // 4. Beta solved: (X^T X)^-1 * (X^T y)
-      const b0 = inv_00 * xty_0 + inv_01 * xty_1;
-      const b1 = inv_10 * xty_0 + inv_11 * xty_1;
-
-      matBetaSolved.innerHTML = `
-        <div class="matrix-row">
-          <div class="matrix-cell" title="Beta_0 solved">${b0.toFixed(4)}</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-cell" title="Beta_1 solved">${b1.toFixed(4)}</div>
-        </div>
-      `;
-
-      // Show values validation check
-      document.getElementById('matrix-beta0-val').textContent = b0.toFixed(4);
-      document.getElementById('matrix-beta1-val').textContent = b1.toFixed(4);
-    }
-  }
-
-  // ─── STEP 6: DIAGNOSTICS RENDERING ───
-  function renderDiagnostics() {
-    const n = points.length;
-    
-    // Select SVG elements
-    const resSvg = document.getElementById('diag-residual-svg');
-    const histSvg = document.getElementById('diag-hist-svg');
-
-    if (!resSvg || !histSvg) return;
-
-    if (n < 2) {
-      // Undefined state warning inside SVGs
-      resSvg.innerHTML = `<text x="170" y="130" text-anchor="middle" fill="var(--text-muted)">Need 2+ points</text>`;
-      histSvg.innerHTML = `<text x="170" y="130" text-anchor="middle" fill="var(--text-muted)">Need 2+ points</text>`;
-      return;
-    }
-
-    // Prepare Diagnostic data
-    const fittedVals = [];
-    const residuals = [];
-    let ssRes = 0;
-    let ssTot = 0;
-
-    let sumY = 0;
-    points.forEach(p => sumY += p.y);
-    const meanY = sumY / n;
-
-    points.forEach(p => {
-      const fitted = optimal.beta1 * p.x + optimal.beta0;
-      const residual = p.y - fitted;
-      fittedVals.push(fitted);
-      residuals.push(residual);
-
-      ssRes += Math.pow(residual, 2);
-      ssTot += Math.pow(p.y - meanY, 2);
-    });
-
-    const r2 = ssTot === 0 ? 1.0 : (1.0 - (ssRes / ssTot));
-    const pVal = 1; // 1 predictor
-    const adjR2 = 1.0 - (1.0 - r2) * ((n - 1) / (n - pVal - 1));
-
-    // Update stats explanations in step sidebar
-    const stepSidebar = document.querySelector('.diagnostics-explanation');
-    if (stepSidebar) {
-      stepSidebar.querySelector('.metric-block:nth-of-type(1) .formula-box').innerHTML = `
-        \\[ R^2 = 1 - \\frac{${ssRes.toFixed(2)}}{${ssTot.toFixed(2)}} = \\mathbf{${r2.toFixed(4)}} \\]
-      `;
-      stepSidebar.querySelector('.metric-block:nth-of-type(2) .formula-box').innerHTML = `
-        \\[ R^2_{\\text{adj}} = 1 - (1 - ${r2.toFixed(3)}) \\frac{${n}-1}{${n}-1-1} = \\mathbf{${n <= 2 ? 'N/A' : adjR2.toFixed(4)}} \\]
-      `;
-    }
-
-    // ─── PLOT 1: RESIDUALS VS FITTED ───
-    const resGrid = document.getElementById('diag-res-grid');
-    const resPointsGroup = document.getElementById('diag-res-points');
-    const resZeroLine = document.getElementById('diag-res-zero');
-
-    resGrid.innerHTML = '';
-    resPointsGroup.innerHTML = '';
-
-    // Dimensions
-    const w = 340, h = 260;
-    const resPad = { top: 20, right: 20, bottom: 30, left: 35 };
-
-    // Axis limit: Fitted goes [0, 10], Residuals goes [-5, 5]
-    function fitToScreen(fitVal, residual) {
-      const sx = resPad.left + (fitVal / 10) * (w - resPad.left - resPad.right);
-      const sy = h / 2.0 - (residual / 5.0) * ((h - resPad.top - resPad.bottom) / 2.0); // center is residual = 0
-      return { x: sx, y: sy };
-    }
-
-    // Draw Axes & Grid background
-    // Draw horizontal dashed lines
-    for (let rVal = -4; rVal <= 4; rVal += 2) {
-      const start = fitToScreen(0, rVal);
-      const end = fitToScreen(10, rVal);
-
-      const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      gridLine.setAttribute('x1', start.x);
-      gridLine.setAttribute('y1', start.y);
-      gridLine.setAttribute('x2', end.x);
-      gridLine.setAttribute('y2', end.y);
-      gridLine.setAttribute('class', rVal === 0 ? 'axis-line' : 'grid-line');
-      resGrid.appendChild(gridLine);
-
-      // Y axis labels for residuals
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', start.x - 8);
-      text.setAttribute('y', start.y + 4);
-      text.setAttribute('class', 'axis-label');
-      text.setAttribute('text-anchor', 'end');
-      text.textContent = (rVal > 0 ? '+' : '') + rVal;
-      resGrid.appendChild(text);
-    }
-
-    // Draw vertical lines for fitted values [0, 10]
-    for (let fVal = 0; fVal <= 10; fVal += 2) {
-      const bottom = fitToScreen(fVal, -5);
-      const top = fitToScreen(fVal, 5);
-
-      const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      gridLine.setAttribute('x1', bottom.x);
-      gridLine.setAttribute('y1', bottom.y);
-      gridLine.setAttribute('x2', top.x);
-      gridLine.setAttribute('y2', top.y);
-      gridLine.setAttribute('class', fVal === 0 ? 'axis-line' : 'grid-line');
-      resGrid.appendChild(gridLine);
-
-      // X labels (Fitted value)
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', bottom.x);
-      text.setAttribute('y', h - 10);
-      text.setAttribute('class', 'axis-label');
-      text.setAttribute('text-anchor', 'middle');
-      text.textContent = fVal;
-      resGrid.appendChild(text);
-    }
-
-    // Residual Zero baseline
-    const zeroStart = fitToScreen(0, 0);
-    const zeroEnd = fitToScreen(10, 0);
-    resZeroLine.setAttribute('x1', zeroStart.x);
-    resZeroLine.setAttribute('y1', zeroStart.y);
-    resZeroLine.setAttribute('x2', zeroEnd.x);
-    resZeroLine.setAttribute('y2', zeroEnd.y);
-
-    // Plot residual points
-    points.forEach((p, i) => {
-      const fVal = fittedVals[i];
-      const rVal = residuals[i];
-      const scr = fitToScreen(fVal, rVal);
-
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', scr.x);
-      circle.setAttribute('cy', scr.y);
-      circle.setAttribute('r', '5');
-      circle.setAttribute('class', 'diag-point');
-
-      // Sync hover with other steps
-      circle.addEventListener('mouseenter', () => highlightPointRow(p.id, true));
-      circle.addEventListener('mouseleave', () => highlightPointRow(p.id, false));
-
-      resPointsGroup.appendChild(circle);
-    });
-
-    // ─── PLOT 2: RESIDUAL HISTOGRAM ───
-    const histGrid = document.getElementById('diag-hist-grid');
-    const histBarsGroup = document.getElementById('diag-hist-bars');
-
-    histGrid.innerHTML = '';
-    histBarsGroup.innerHTML = '';
-
-    // Bin residuals. Let's make 5 standard bins centered at 0:
-    // Bin 1: [-inf, -1.8)
-    // Bin 2: [-1.8, -0.6)
-    // Bin 3: [-0.6, 0.6]
-    // Bin 4: (0.6, 1.8]
-    // Bin 5: (1.8, inf]
-    const bins = [0, 0, 0, 0, 0];
-    const binLabels = ["<-1.8", "-1.2", "0.0", "1.2", ">1.8"];
-
-    residuals.forEach(res => {
-      if (res < -1.8) bins[0]++;
-      else if (res < -0.6) bins[1]++;
-      else if (res <= 0.6) bins[2]++;
-      else if (res <= 1.8) bins[3]++;
-      else bins[4]++;
-    });
-
-    const maxBinCount = Math.max(...bins, 1);
-    
-    // Draw histogram vertical grid
-    const histPad = { top: 20, right: 20, bottom: 30, left: 30 };
-    function histScreen(binIdx, count) {
-      const colWidth = (w - histPad.left - histPad.right) / 5;
-      const sx = histPad.left + binIdx * colWidth + colWidth / 2;
-      const sy = h - histPad.bottom - (count / maxBinCount) * (h - histPad.top - histPad.bottom);
-      return { x: sx, y: sy, w: colWidth };
-    }
-
-    // Draw horizontal grid lines for histogram counts
-    for (let c = 0; c <= maxBinCount; c++) {
-      if (maxBinCount > 5 && c % 2 !== 0) continue; // skip gridlines if too dense
-
-      const py = h - histPad.bottom - (c / maxBinCount) * (h - histPad.top - histPad.bottom);
-
-      const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      gridLine.setAttribute('x1', histPad.left);
-      gridLine.setAttribute('y1', py);
-      gridLine.setAttribute('x2', w - histPad.right);
-      gridLine.setAttribute('y2', py);
-      gridLine.setAttribute('class', c === 0 ? 'axis-line' : 'grid-line');
-      histGrid.appendChild(gridLine);
-
-      // Y count label
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', histPad.left - 8);
-      text.setAttribute('y', py + 4);
-      text.setAttribute('class', 'axis-label');
-      text.setAttribute('text-anchor', 'end');
-      text.textContent = c;
-      histGrid.appendChild(text);
-    }
-
-    // Draw bars and X labels
-    const barWidth = (w - histPad.left - histPad.right) / 5 - 4; // gap between bars
-
-    bins.forEach((count, idx) => {
-      const coords = histScreen(idx, count);
-      const bx = coords.x - barWidth / 2;
-      const by = coords.y;
-      const bHeight = h - histPad.bottom - by;
-
-      // Draw bar rect
-      if (count > 0) {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', bx);
-        rect.setAttribute('y', by);
-        rect.setAttribute('width', barWidth);
-        rect.setAttribute('height', bHeight);
-        rect.setAttribute('class', 'hist-bar');
-        histBarsGroup.appendChild(rect);
-      }
-
-      // Draw X bin label
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      label.setAttribute('x', coords.x);
-      label.setAttribute('y', h - 10);
-      label.setAttribute('class', 'axis-label');
-      label.setAttribute('text-anchor', 'middle');
-      label.textContent = binLabels[idx];
-      histGrid.appendChild(label);
-    });
-  }
-
+    K.seg(lab, 'ds', function (v) { ds = v; update(); });
+    update();
+  })();
 })();

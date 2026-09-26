@@ -274,3 +274,18 @@ input[type=range].slider::-moz-range-thumb { width: 16px; height: 16px; border-r
 @media (prefers-reduced-motion: reduce) {
   .lesson-main .chapter > .pre-reveal { opacity: 1; transform: none; }
 }
+
+/* ─── Matrices & small data tables (shared) ─── */
+.mat-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; padding: .9rem 1.2rem; overflow-x: auto; border-top: 1px solid var(--border-light); }
+.mat-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: .3rem; }
+.mat { display: inline-grid; gap: 1px 2px; padding: .35rem .45rem; border-left: 2px solid var(--text-muted); border-right: 2px solid var(--text-muted); border-radius: 7px; font: 500 .76rem var(--font-mono); color: var(--text); }
+.mat span { padding: .12rem .38rem; text-align: right; border-radius: 4px; white-space: nowrap; transition: background .3s; }
+.mat span.hl { background: rgba(124, 131, 255, .2); }
+.mat span.hl2 { background: rgba(45, 212, 191, .2); }
+.mat span.dim { color: var(--text-muted); }
+.mat-cap { font: 600 .7rem var(--font-mono); color: var(--text-muted); }
+.mat-op { font: 600 1rem var(--font-mono); color: var(--text-muted); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: .25rem .8rem; font: 500 .8rem var(--font-mono); }
+.kv dt { color: var(--text-muted); } .kv dd { margin: 0; color: var(--text); text-align: right; }
+.toggle { display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--text-secondary); cursor: pointer; user-select: none; }
+.toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
