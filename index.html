@@ -17,273 +17,289 @@
     "author": { "@type": "Person", "name": "Deep Dive From Scratch" }
   }
   </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' aria-hidden='true'%3E%3Cdefs%3E%3ClinearGradient id='ddfs-lg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c83ff'/%3E%3Cstop offset='1' stop-color='%232dd4bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23ddfs-lg)'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M7 10.5c3-2.4 6-2.4 9 0s6 2.4 9 0'/%3E%3Cpath d='M7 16.5c3-2.4 6-2.4 9 0s6 2.4 9 0' opacity='.78'/%3E%3Cpath d='M7 22.5c3-2.4 6-2.4 9 0s6 2.4 9 0' opacity='.55'/%3E%3C/g%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="theme.js"></script>
-  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js?v=3"></script>
+  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="home.css?v=3" />
 </head>
-<body>
+<body class="home">
 
 <!-- ═══ TOP NAV ═══ -->
 <nav class="top-nav">
   <a href="/" class="nav-brand">
-    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="ddfs-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c83ff"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#ddfs-lg)"/><g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M7 10.5c3-2.4 6-2.4 9 0s6 2.4 9 0"/><path d="M7 16.5c3-2.4 6-2.4 9 0s6 2.4 9 0" opacity=".78"/><path d="M7 22.5c3-2.4 6-2.4 9 0s6 2.4 9 0" opacity=".55"/></g></svg></span>
     <span class="nav-brand-text">Deep Dive From Scratch</span>
   </a>
   <div class="nav-right">
     <div class="nav-links">
       <a href="#posts" class="hide-sm">Posts</a>
       <a href="about.html" class="hide-sm">About</a>
-      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc" aria-label="Buy me a coffee">☕<span class="bmc-text"> Buy me a coffee</span></a>
     </div>
     <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
-      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-        <circle cx="12" cy="12" r="5"/>
-        <line x1="12" y1="1" x2="12" y2="3"/>
-        <line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/>
-        <line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
   </div>
 </nav>
 
 <!-- ═══ HERO ═══ -->
-<section class="hero">
-  <div class="hero-tag">Interactive Technical Explainers · From Scratch</div>
-  <h1>Understand complex ideas<br>one step at a time</h1>
-  <p>Interactive visualizers and practical guides for machine learning, software engineering, DevOps, signal processing, and the mathematics behind the tools we use every day.</p>
+<section class="hero hero-x">
+  <canvas class="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-tag rise"><span class="pulse"></span>Interactive Technical Explainers · From Scratch</div>
+  <h1 class="rise" style="--d:1">Understand complex ideas<br>one step at a time</h1>
+  <p class="hero-lede rise" style="--d:2">Interactive visualizers and practical guides for machine learning, software engineering, DevOps, signal processing, and the mathematics behind the tools we use every day.</p>
+  <div class="typer rise" style="--d:3" aria-hidden="true"><span class="prompt">$ explore</span><span class="word" data-words='["convolution", "backpropagation", "gradient descent", "aliasing", "the normal equation", "kubectl apply", "convexity", "git rebase"]'></span><span class="caret"></span></div>
+  <div class="hero-actions rise" style="--d:4">
+    <a href="#posts" class="btn-x primary">Start exploring <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <a href="about.html" class="btn-x ghost">About this blog</a>
+  </div>
 
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="search-input" placeholder="Search posts… e.g. convolution, gradient descent" autocomplete="off" />
+  <div class="search-wrap rise" style="--d:5">
+    <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+    <input type="text" id="search-input" placeholder="Search posts… e.g. convolution, gradient descent" autocomplete="off" aria-label="Search posts" />
+    <span class="search-kbd" aria-hidden="true">/</span>
     <div id="search-results"></div>
+  </div>
+
+  <div class="stats rise" style="--d:6">
+    <div class="stat"><b data-count="8">0</b><span>interactive posts</span></div>
+    <div class="stat"><b data-count="4">0</b><span>topic areas</span></div>
+    <div class="stat"><b data-count="100" data-suffix="%">0</b><span>free &amp; open source</span></div>
   </div>
 </section>
 
 <!-- ═══ MAIN ═══ -->
-<main class="main">
+<main class="main main-x">
 
-  <!-- Posts -->
-  <div id="posts">
-    <div class="section-title">Interactive Posts</div>
-    <div class="posts-grid" id="posts-grid">
-
-      <!-- Post 1: CNN -->
-      <a href="cnn/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent">Deep Learning</span>
-          <span class="tag accent2">CNN</span>
-          <span class="tag accent">Matrix Ops</span>
-        </div>
-        <h2>CNN — Matrix Operations Deep Dive</h2>
-        <p>Walk through every step of a Convolutional Neural Network: convolution, ReLU, max pooling, flatten, and fully-connected layer — with live matrix calculations.</p>
-        <div class="post-meta">
-          <span>Jun 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <!-- Post 2: Kubernetes -->
-      <a href="kubernetes/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent2">DevOps</span>
-          <span class="tag accent">Containers</span>
-          <span class="tag accent2">Kubernetes</span>
-        </div>
-        <h2>Kubernetes & Containers from Scratch</h2>
-        <p>Learn Docker, Podman, and kubectl side-by-side: build images, run a local cluster, generate YAML live, and deploy your first app interactively.</p>
-        <div class="post-meta">
-          <span>Jun 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <!-- Post 3: OLS -->
-      <a href="ols/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent">Linear Algebra</span>
-          <span class="tag accent2">ML Basics</span>
-          <span class="tag accent">Optimization</span>
-        </div>
-        <h2>Ordinary Least Squares (OLS) Deep Dive</h2>
-        <p>Explore OLS linear regression step-by-step: visualize how points warp the loss surface, run gradient descent live, and calculate the exact normal equation with real matrix arithmetic.</p>
-        <div class="post-meta">
-          <span>Jun 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <!-- Post 4: GitHub Hero -->
-      <a href="github-hero/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent2">DevOps</span>
-          <span class="tag accent">Git</span>
-          <span class="tag accent2">GitHub</span>
-        </div>
-        <h2>GitHub Hero — Beginner Field Guide</h2>
-        <p>A visual, interactive field guide to GitHub for beginners: set up Git, push your first repo, fork, branch, pull requests, and daily vocabulary.</p>
-        <div class="post-meta">
-          <span>Jul 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <a href="gradient-descent/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent2">Optimization</span>
-          <span class="tag accent">Interactive</span>
-        </div>
-        <h2>Gradient Descent by Hand</h2>
-        <p>Visualize gradient descent, momentum, and Adam step by step on a loss surface, with every update calculated live.</p>
-        <div class="post-meta">
-          <span>Jul 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <a href="sampling-aliasing/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent2">Signal Processing</span>
-          <span class="tag accent">Interactive</span>
-          <span class="tag accent2">Audio</span>
-        </div>
-        <h2>Sampling & Aliasing — Signal Lab</h2>
-        <p>See the sampling theorem come alive: adjust a signal's frequency and sample rate, watch aliasing fold frequencies, and engage an anti-alias filter.</p>
-        <div class="post-meta">
-          <span>Aug 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <a href="convex-optimization/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent">Convex Optimization</span>
-          <span class="tag accent2">Geometry</span>
-        </div>
-        <h2>Convex Optimization — Why It Matters in ML</h2>
-        <p>Test the chord inequality interactively and see why convex objectives guarantee a global minimum.</p>
-        <div class="post-meta">
-          <span>Jul 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
-      <a href="backpropagation/" class="post-card">
-        <div class="post-tags">
-          <span class="tag accent2">Deep Learning</span>
-          <span class="tag accent">Chain Rule</span>
-        </div>
-        <h2>Backpropagation by Hand</h2>
-        <p>Follow a neural network forward pass, derive the gradients, and apply each backpropagation update live.</p>
-        <div class="post-meta">
-          <span>Jul 2026</span>
-          <span class="read-link">Read & Explore →</span>
-        </div>
-      </a>
-
+  <section id="posts">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Library</div>
+        <h2>Interactive posts</h2>
+        <p>Every post pairs a first-principles explanation with a live demo you can poke at.</p>
+      </div>
+      <div class="chips" role="group" aria-label="Filter by topic"><button class="chip" data-cat="all" aria-pressed="true">All<span class="n">8</span></button><button class="chip" data-cat="dl" aria-pressed="false">Deep Learning<span class="n">2</span></button><button class="chip" data-cat="math" aria-pressed="false">Math & Optimization<span class="n">3</span></button><button class="chip" data-cat="devops" aria-pressed="false">DevOps<span class="n">2</span></button><button class="chip" data-cat="signal" aria-pressed="false">Signal Processing<span class="n">1</span></button></div>
     </div>
-  </div>
+    <div class="posts-grid posts-x" id="posts-grid">
+      <a href="sampling-aliasing/" class="post-card reveal featured" data-cat="signal">
+        <div class="art" style="--a1:#2dd4bf;--a2:#fbbf24" aria-hidden="true"><span class="art-num">01</span><span class="art-new">New</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid slice" fill="none">
+  <path d="M0 140H400" class="sm" stroke-width="1" opacity=".4"/>
+  <g class="wave-move"><path d="M0 85.0 L4 65.3 L8 51.3 L12 47.1 L16 54.0 L20 69.9 L24 90.2 L28 109.0 L32 120.8 L36 122.2 L40 112.8 L44 95.3 L48 74.7 L52 57.2 L56 47.8 L60 49.2 L64 61.0 L68 79.8 L72 100.1 L76 116.0 L80 122.9 L84 118.7 L88 104.7 L92 85.0 L96 65.3 L100 51.3 L104 47.1 L108 54.0 L112 69.9 L116 90.2 L120 109.0 L124 120.8 L128 122.2 L132 112.8 L136 95.3 L140 74.7 L144 57.2 L148 47.8 L152 49.2 L156 61.0 L160 79.8 L164 100.1 L168 116.0 L172 122.9 L176 118.7 L180 104.7 L184 85.0 L188 65.3 L192 51.3 L196 47.1 L200 54.0 L204 69.9 L208 90.2 L212 109.0 L216 120.8 L220 122.2 L224 112.8 L228 95.3 L232 74.7 L236 57.2 L240 47.8 L244 49.2 L248 61.0 L252 79.8 L256 100.1 L260 116.0 L264 122.9 L268 118.7 L272 104.7 L276 85.0 L280 65.3 L284 51.3 L288 47.1 L292 54.0 L296 69.9 L300 90.2 L304 109.0 L308 120.8 L312 122.2 L316 112.8 L320 95.3 L324 74.7 L328 57.2 L332 47.8 L336 49.2 L340 61.0 L344 79.8 L348 100.1 L352 116.0 L356 122.9 L360 118.7 L364 104.7 L368 85.0 L372 65.3 L376 51.3 L380 47.1 L384 54.0 L388 69.9 L392 90.2 L396 109.0 L400 120.8 L404 122.2 L408 112.8 L412 95.3 L416 74.7 L420 57.2 L424 47.8 L428 49.2 L432 61.0 L436 79.8 L440 100.1 L444 116.0 L448 122.9 L452 118.7 L456 104.7 L460 85.0 L464 65.3 L468 51.3 L472 47.1 L476 54.0 L480 69.9 L484 90.2 L488 109.0 L492 120.8 L496 122.2 L500 112.8 L504 95.3 L508 74.7 L512 57.2 L516 47.8 L520 49.2" class="s1" stroke-width="2" opacity=".75"/></g>
+  <path d="M0 85.0 L4 81.9 L8 78.8 L12 75.8 L16 72.8 L20 69.9 L24 67.1 L28 64.4 L32 61.8 L36 59.4 L40 57.2 L44 55.2 L48 53.4 L52 51.8 L56 50.4 L60 49.2 L64 48.3 L68 47.6 L72 47.2 L76 47.0 L80 47.1 L84 47.4 L88 48.0 L92 48.9 L96 49.9 L100 51.3 L104 52.8 L108 54.6 L112 56.5 L116 58.7 L120 61.0 L124 63.5 L128 66.1 L132 68.9 L136 71.8 L140 74.7 L144 77.8 L148 80.8 L152 83.9 L156 87.1 L160 90.2 L164 93.2 L168 96.2 L172 99.2 L176 102.0 L180 104.7 L184 107.3 L188 109.8 L192 112.0 L196 114.1 L200 116.0 L204 117.7 L208 119.2 L212 120.4 L216 121.4 L220 122.2 L224 122.7 L228 123.0 L232 123.0 L236 122.7 L240 122.2 L244 121.5 L248 120.5 L252 119.2 L256 117.7 L260 116.1 L264 114.2 L268 112.1 L272 109.8 L276 107.4 L280 104.8 L284 102.0 L288 99.2 L292 96.3 L296 93.3 L300 90.2 L304 87.1 L308 84.0 L312 80.9 L316 77.8 L320 74.8 L324 71.8 L328 68.9 L332 66.2 L336 63.5 L340 61.0 L344 58.7 L348 56.5 L352 54.6 L356 52.8 L360 51.3 L364 50.0 L368 48.9 L372 48.0 L376 47.4 L380 47.1 L384 47.0 L388 47.2 L392 47.6 L396 48.3 L400 49.2" style="stroke:var(--highlight)" stroke-width="2" stroke-dasharray="6 5" opacity=".9"/>
+  <g class="samples"><line x1="20" y1="140" x2="20" y2="69.9" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="20" cy="69.9" r="4" class="f2"/><line x1="60" y1="140" x2="60" y2="49.2" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="60" cy="49.2" r="4" class="f2"/><line x1="100" y1="140" x2="100" y2="51.3" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="100" cy="51.3" r="4" class="f2"/><line x1="140" y1="140" x2="140" y2="74.7" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="140" cy="74.7" r="4" class="f2"/><line x1="180" y1="140" x2="180" y2="104.7" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="180" cy="104.7" r="4" class="f2"/><line x1="220" y1="140" x2="220" y2="122.2" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="220" cy="122.2" r="4" class="f2"/><line x1="260" y1="140" x2="260" y2="116.0" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="260" cy="116.0" r="4" class="f2"/><line x1="300" y1="140" x2="300" y2="90.2" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="300" cy="90.2" r="4" class="f2"/><line x1="340" y1="140" x2="340" y2="61.0" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="340" cy="61.0" r="4" class="f2"/><line x1="380" y1="140" x2="380" y2="47.1" class="sm" stroke-width="1.2" opacity=".6"/><circle cx="380" cy="47.1" r="4" class="f2"/></g>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent2">Signal Processing</span><span class="tag accent">Interactive</span><span class="tag accent2">Audio</span></div>
+          <h2>Sampling & Aliasing — Signal Lab</h2>
+          <p>See the sampling theorem come alive: adjust a signal's frequency and sample rate, watch aliasing fold frequencies, and engage an anti-alias filter.</p>
+          <div class="post-meta">
+            <span>Aug 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="gradient-descent/" class="post-card reveal" data-cat="math">
+        <div class="art" style="--a1:#7c83ff;--a2:#fbbf24" aria-hidden="true"><span class="art-num">02</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <g class="s1" stroke-width="1.5" opacity=".5"><ellipse cx="200" cy="100" rx="160" ry="62"/><ellipse cx="200" cy="100" rx="118" ry="46" opacity=".8"/><ellipse cx="200" cy="100" rx="76" ry="30" opacity=".7"/><ellipse cx="200" cy="100" rx="36" ry="14" opacity=".6"/></g>
+  <circle cx="200" cy="100" r="3" class="f2"/>
+  <path class="gd-trail s2" d="M60 40 C 110 60, 150 55, 175 80 S 195 105, 200 100" stroke-width="2.5" stroke-linecap="round"/>
+  <circle class="gd-ball" r="8" style="fill:var(--highlight);filter:drop-shadow(0 0 6px var(--highlight))"/>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent2">Optimization</span><span class="tag accent">Interactive</span></div>
+          <h2>Gradient Descent by Hand</h2>
+          <p>Visualize gradient descent, momentum, and Adam step by step on a loss surface, with every update calculated live.</p>
+          <div class="post-meta">
+            <span>Jul 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="backpropagation/" class="post-card reveal" data-cat="dl">
+        <div class="art" aria-hidden="true"><span class="art-num">03</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none"><line x1="90" y1="45" x2="200" y2="30" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="45" x2="200" y2="70" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="45" x2="200" y2="110" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="45" x2="200" y2="150" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="85" x2="200" y2="30" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="85" x2="200" y2="70" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="85" x2="200" y2="110" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="85" x2="200" y2="150" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="125" x2="200" y2="30" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="125" x2="200" y2="70" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="125" x2="200" y2="110" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="125" x2="200" y2="150" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="30" x2="310" y2="65" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="30" x2="310" y2="115" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="70" x2="310" y2="65" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="70" x2="310" y2="115" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="110" x2="310" y2="65" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="110" x2="310" y2="115" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="150" x2="310" y2="65" class="sm" stroke-width="1" opacity=".35"/><line x1="200" y1="150" x2="310" y2="115" class="sm" stroke-width="1" opacity=".35"/><line x1="90" y1="45" x2="200" y2="30" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="90" y1="45" x2="200" y2="70" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="90" y1="45" x2="200" y2="110" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="90" y1="45" x2="200" y2="150" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="90" y1="85" x2="200" y2="30" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="90" y1="85" x2="200" y2="70" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="90" y1="85" x2="200" y2="110" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="90" y1="85" x2="200" y2="150" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="90" y1="125" x2="200" y2="30" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="90" y1="125" x2="200" y2="70" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="90" y1="125" x2="200" y2="110" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="90" y1="125" x2="200" y2="150" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="200" y1="30" x2="310" y2="65" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="200" y1="30" x2="310" y2="115" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="200" y1="70" x2="310" y2="65" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="200" y1="70" x2="310" y2="115" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="200" y1="110" x2="310" y2="65" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="200" y1="110" x2="310" y2="115" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="200" y1="150" x2="310" y2="65" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="200" y1="150" x2="310" y2="115" class="bp-f s1" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="200" y1="30" x2="90" y2="45" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="200" y1="70" x2="90" y2="45" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="200" y1="110" x2="90" y2="45" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="200" y1="150" x2="90" y2="45" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="200" y1="30" x2="90" y2="85" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="200" y1="70" x2="90" y2="85" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="200" y1="110" x2="90" y2="85" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="200" y1="150" x2="90" y2="85" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="200" y1="30" x2="90" y2="125" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="200" y1="70" x2="90" y2="125" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="200" y1="110" x2="90" y2="125" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="200" y1="150" x2="90" y2="125" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="310" y1="65" x2="200" y2="30" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="310" y1="115" x2="200" y2="30" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="310" y1="65" x2="200" y2="70" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><line x1="310" y1="115" x2="200" y2="70" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.00s"/><line x1="310" y1="65" x2="200" y2="110" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.07s"/><line x1="310" y1="115" x2="200" y2="110" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.14s"/><line x1="310" y1="65" x2="200" y2="150" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.21s"/><line x1="310" y1="115" x2="200" y2="150" class="bp-b s2" stroke-width="2.5" stroke-linecap="round" style="animation-delay:0.28s"/><circle cx="90" cy="45" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.0s"/><circle cx="90" cy="85" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.0s"/><circle cx="90" cy="125" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.0s"/><circle cx="200" cy="30" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.5s"/><circle cx="200" cy="70" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.5s"/><circle cx="200" cy="110" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.5s"/><circle cx="200" cy="150" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent);stroke-width:2.5;animation-delay:0.5s"/><circle cx="310" cy="65" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent2);stroke-width:2.5;animation-delay:1.0s"/><circle cx="310" cy="115" r="9" class="bp-node" style="fill:var(--surface);stroke:var(--accent2);stroke-width:2.5;animation-delay:1.0s"/></svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent2">Deep Learning</span><span class="tag accent">Chain Rule</span></div>
+          <h2>Backpropagation by Hand</h2>
+          <p>Follow a neural network forward pass, derive the gradients, and apply each backpropagation update live.</p>
+          <div class="post-meta">
+            <span>Jul 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="convex-optimization/" class="post-card reveal" data-cat="math">
+        <div class="art" style="--a1:#7c83ff;--a2:#2dd4bf" aria-hidden="true"><span class="art-num">04</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <path d="M50 10.0 L60 27.4 L70 43.6 L80 58.6 L90 72.4 L100 85.0 L110 96.4 L120 106.6 L130 115.6 L140 123.4 L150 130.0 L160 135.4 L170 139.6 L180 142.6 L190 144.4 L200 145.0 L210 144.4 L220 142.6 L230 139.6 L240 135.4 L250 130.0 L260 123.4 L270 115.6 L280 106.6 L290 96.4 L300 85.0 L310 72.4 L320 58.6 L330 43.6 L340 27.4 L350 10.0 L350 0 L50 0Z" class="f1" opacity=".08"/>
+  <path d="M50 10.0 L60 27.4 L70 43.6 L80 58.6 L90 72.4 L100 85.0 L110 96.4 L120 106.6 L130 115.6 L140 123.4 L150 130.0 L160 135.4 L170 139.6 L180 142.6 L190 144.4 L200 145.0 L210 144.4 L220 142.6 L230 139.6 L240 135.4 L250 130.0 L260 123.4 L270 115.6 L280 106.6 L290 96.4 L300 85.0 L310 72.4 L320 58.6 L330 43.6 L340 27.4 L350 10.0" class="s1" stroke-width="3" stroke-linecap="round"/>
+  <path class="cvx-chord s2" d="M80 58.6 L 320 58.6" stroke-width="2.5" stroke-dasharray="7 5" stroke-linecap="round"/>
+  <circle cx="200" cy="145" r="6" style="fill:var(--highlight);filter:drop-shadow(0 0 6px var(--highlight))"/>
+  <text x="214" y="160" font-size="11" font-family="JetBrains Mono, monospace" class="fm">global min</text>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent">Convex Optimization</span><span class="tag accent2">Geometry</span></div>
+          <h2>Convex Optimization — Why It Matters in ML</h2>
+          <p>Test the chord inequality interactively and see why convex objectives guarantee a global minimum.</p>
+          <div class="post-meta">
+            <span>Jul 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="github-hero/" class="post-card reveal" data-cat="devops">
+        <div class="art" style="--a1:#2dd4bf;--a2:#7c83ff" aria-hidden="true"><span class="art-num">05</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <path d="M30 115H370" class="s1" stroke-width="3" stroke-linecap="round"/>
+  <path class="git-branch s2" d="M120 115 C 140 115, 140 60, 170 60 H 270 C 300 60, 300 115, 320 115" stroke-width="3" stroke-linecap="round"/>
+  <g class="f1"><circle cx="60" cy="115" r="7"/><circle cx="120" cy="115" r="7"/><circle cx="220" cy="115" r="7"/></g>
+  <g class="f2"><circle cx="185" cy="60" r="7" class="float"/><circle cx="240" cy="60" r="7" class="float" style="animation-delay:-2s"/></g>
+  <circle class="git-merge" cx="320" cy="115" r="10" style="fill:var(--highlight);filter:drop-shadow(0 0 6px var(--highlight))"/>
+  <text x="320" y="146" text-anchor="middle" font-size="11" font-family="JetBrains Mono, monospace" class="fm">merge</text>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent2">DevOps</span><span class="tag accent">Git</span><span class="tag accent2">GitHub</span></div>
+          <h2>GitHub Hero — Beginner Field Guide</h2>
+          <p>A visual, interactive field guide to GitHub for beginners: set up Git, push your first repo, fork, branch, pull requests, and daily vocabulary.</p>
+          <div class="post-meta">
+            <span>Jul 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="cnn/" class="post-card reveal" data-cat="dl">
+        <div class="art" aria-hidden="true"><span class="art-num">06</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <g><rect x="70" y="30" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="92" y="30" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="114" y="30" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="136" y="30" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="158" y="30" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="70" y="52" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="92" y="52" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="114" y="52" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="136" y="52" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="158" y="52" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="70" y="74" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="92" y="74" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="114" y="74" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="136" y="74" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="158" y="74" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="70" y="96" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="92" y="96" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="114" y="96" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="136" y="96" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="158" y="96" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="70" y="118" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="92" y="118" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="114" y="118" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="136" y="118" width="20" height="20" rx="4" class="fm" opacity=".35"/><rect x="158" y="118" width="20" height="20" rx="4" class="fm" opacity=".35"/></g>
+  <rect class="cnn-kernel s2" x="69" y="29" width="66" height="66" rx="7" stroke-width="2.5" fill="currentColor" style="color:var(--accent2);fill-opacity:.14"/>
+  <path d="M200 85h40" class="sm" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 5"/><path d="M236 79l6 6-6 6" class="sm" stroke-width="2" stroke-linecap="round"/>
+  <g class="cnn-out"><rect x="262" y="52" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="284" y="52" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="306" y="52" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="262" y="74" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="284" y="74" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="306" y="74" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="262" y="96" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="284" y="96" width="20" height="20" rx="4" class="f1" opacity="1"/><rect x="306" y="96" width="20" height="20" rx="4" class="f1" opacity="1"/></g>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent">Deep Learning</span><span class="tag accent2">CNN</span><span class="tag accent">Matrix Ops</span></div>
+          <h2>CNN — Matrix Operations Deep Dive</h2>
+          <p>Walk through every step of a Convolutional Neural Network: convolution, ReLU, max pooling, flatten, and fully-connected layer — with live matrix calculations.</p>
+          <div class="post-meta">
+            <span>Jun 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="kubernetes/" class="post-card reveal" data-cat="devops">
+        <div class="art" style="--a1:#7c83ff;--a2:#2dd4bf" aria-hidden="true"><span class="art-num">07</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <g class="k8s-wheel s1"><circle cx="200" cy="85" r="40" stroke-width="3"/><circle cx="200" cy="85" r="10" class="f1"/><line x1="200" y1="85" x2="234.0" y2="85.0" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="221.2" y2="111.6" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="192.4" y2="118.1" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="169.4" y2="99.8" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="169.4" y2="70.2" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="192.4" y2="51.9" stroke-width="3" stroke-linecap="round"/><line x1="200" y1="85" x2="221.2" y2="58.4" stroke-width="3" stroke-linecap="round"/></g>
+  <g><g class="k8s-pod"><rect x="60" y="30" width="46" height="34" rx="8" class="f2" opacity=".2"/><rect x="60" y="30" width="46" height="34" rx="8" class="s2" stroke-width="2"/><rect x="69" y="39" width="12" height="16" rx="2" class="f2"/><rect x="85" y="39" width="12" height="16" rx="2" class="f2" opacity=".6"/></g><g class="k8s-pod"><rect x="60" y="104" width="46" height="34" rx="8" class="f2" opacity=".2"/><rect x="60" y="104" width="46" height="34" rx="8" class="s2" stroke-width="2"/><rect x="69" y="113" width="12" height="16" rx="2" class="f2"/><rect x="85" y="113" width="12" height="16" rx="2" class="f2" opacity=".6"/></g><g class="k8s-pod"><rect x="294" y="30" width="46" height="34" rx="8" class="f2" opacity=".2"/><rect x="294" y="30" width="46" height="34" rx="8" class="s2" stroke-width="2"/><rect x="303" y="39" width="12" height="16" rx="2" class="f2"/><rect x="319" y="39" width="12" height="16" rx="2" class="f2" opacity=".6"/></g><g class="k8s-pod"><rect x="294" y="104" width="46" height="34" rx="8" class="f2" opacity=".2"/><rect x="294" y="104" width="46" height="34" rx="8" class="s2" stroke-width="2"/><rect x="303" y="113" width="12" height="16" rx="2" class="f2"/><rect x="319" y="113" width="12" height="16" rx="2" class="f2" opacity=".6"/></g></g>
+  <g class="sm" stroke-width="1.5" stroke-dasharray="3 4" opacity=".6"><path d="M106 47H160M106 121H160M294 47H240M294 121H240"/></g>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent2">DevOps</span><span class="tag accent">Containers</span><span class="tag accent2">Kubernetes</span></div>
+          <h2>Kubernetes & Containers from Scratch</h2>
+          <p>Learn Docker, Podman, and kubectl side-by-side: build images, run a local cluster, generate YAML live, and deploy your first app interactively.</p>
+          <div class="post-meta">
+            <span>Jun 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+      <a href="ols/" class="post-card reveal" data-cat="math">
+        <div class="art" aria-hidden="true"><span class="art-num">08</span><svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid meet" fill="none">
+  <g class="ols-res"><line x1="48" y1="117" x2="48" y2="132" class="s2" stroke-width="1.3"/><line x1="74" y1="105" x2="74" y2="124" class="s2" stroke-width="1.3"/><line x1="94" y1="111" x2="94" y2="117" class="s2" stroke-width="1.3"/><line x1="111" y1="112" x2="111" y2="112" class="s2" stroke-width="1.3"/><line x1="132" y1="102" x2="132" y2="104" class="s2" stroke-width="1.3"/><line x1="155" y1="79" x2="155" y2="97" class="s2" stroke-width="1.3"/><line x1="181" y1="103" x2="181" y2="88" class="s2" stroke-width="1.3"/><line x1="199" y1="70" x2="199" y2="82" class="s2" stroke-width="1.3"/><line x1="228" y1="93" x2="228" y2="73" class="s2" stroke-width="1.3"/><line x1="249" y1="62" x2="249" y2="66" class="s2" stroke-width="1.3"/><line x1="276" y1="37" x2="276" y2="57" class="s2" stroke-width="1.3"/><line x1="296" y1="41" x2="296" y2="50" class="s2" stroke-width="1.3"/><line x1="310" y1="29" x2="310" y2="46" class="s2" stroke-width="1.3"/><line x1="334" y1="52" x2="334" y2="38" class="s2" stroke-width="1.3"/></g>
+  <line class="ols-line s1" x1="30" y1="138.3" x2="370" y2="26" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="117" r="4.5" class="ft" opacity=".85"/><circle cx="74" cy="105" r="4.5" class="ft" opacity=".85"/><circle cx="94" cy="111" r="4.5" class="ft" opacity=".85"/><circle cx="111" cy="112" r="4.5" class="ft" opacity=".85"/><circle cx="132" cy="102" r="4.5" class="ft" opacity=".85"/><circle cx="155" cy="79" r="4.5" class="ft" opacity=".85"/><circle cx="181" cy="103" r="4.5" class="ft" opacity=".85"/><circle cx="199" cy="70" r="4.5" class="ft" opacity=".85"/><circle cx="228" cy="93" r="4.5" class="ft" opacity=".85"/><circle cx="249" cy="62" r="4.5" class="ft" opacity=".85"/><circle cx="276" cy="37" r="4.5" class="ft" opacity=".85"/><circle cx="296" cy="41" r="4.5" class="ft" opacity=".85"/><circle cx="310" cy="29" r="4.5" class="ft" opacity=".85"/><circle cx="334" cy="52" r="4.5" class="ft" opacity=".85"/>
+</svg></div>
+        <div class="card-body">
+          <div class="post-tags"><span class="tag accent">Linear Algebra</span><span class="tag accent2">ML Basics</span><span class="tag accent">Optimization</span></div>
+          <h2>Ordinary Least Squares (OLS) Deep Dive</h2>
+          <p>Explore OLS linear regression step-by-step: visualize how points warp the loss surface, run gradient descent live, and calculate the exact normal equation with real matrix arithmetic.</p>
+          <div class="post-meta">
+            <span>Jun 2026</span>
+            <span class="read-link">Read &amp; Explore <span aria-hidden="true">→</span></span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
 
-  <!-- Support -->
-  <div class="support-box">
-    <h2>☕ Support this blog</h2>
+  <section>
+    <div class="section-head"><div><div class="eyebrow">Method</div><h2>How every post works</h2></div></div>
+    <div class="steps reveal-group">
+      <div class="step"><span class="num">01</span><div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3Z"/></svg></div><h3>Intuition first</h3><p>Start with a picture of what the idea does before any notation — why it exists and what problem it solves.</p></div>
+      <div class="step"><span class="num">02</span><div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7M17 14l3 3-3 3"/></svg></div><h3>Math, unpacked</h3><p>Every formula is derived step by step, with the numbers filled in so you can follow each operation.</p></div>
+      <div class="step"><span class="num">03</span><div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9V3Z"/></svg></div><h3>Play with it live</h3><p>Change the inputs, drag the sliders, and watch the algorithm respond in real time right in your browser.</p></div>
+    </div>
+  </section>
+
+  <div class="support-box support-x">
+    <span class="cup" aria-hidden="true">☕</span>
+    <h2>Support this blog</h2>
     <p>All content is free and open source. If these visualizers helped you understand ML better, consider buying me a coffee — it keeps the posts coming!</p>
-    <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="bmc-btn">
-      ☕ Buy me a coffee
-    </a>
+    <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="bmc-btn">☕ Buy me a coffee</a>
   </div>
 
 </main>
 
 <!-- ═══ FOOTER ═══ -->
-<footer>
-  <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
+<footer class="footer-x">
+  <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank" rel="noopener">GitHub</a></p>
 </footer>
 
 <!-- ═══ FUSE.JS SEARCH ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <script>
-  const posts = [
-    {
-      title: "CNN — Matrix Operations Deep Dive",
-      url: "cnn/",
-      tags: "CNN convolutional neural network matrix convolution ReLU max pooling flatten fully connected deep learning",
-      date: "Jun 2026"
-    },
-    {
-      title: "Kubernetes & Containers from Scratch",
-      url: "kubernetes/",
-      tags: "Kubernetes Docker Podman containers kubectl kind minikube DevOps containerization deployment service YAML orchestration",
-      date: "Jun 2026"
-    },
-    {
-      title: "Ordinary Least Squares (OLS) Deep Dive",
-      url: "ols/",
-      tags: "OLS ordinary least squares linear regression matrix normal equation gradient descent residuals statistics machine learning optimization",
-      date: "Jun 2026"
-    },
-    {
-      title: "GitHub Hero — Beginner Field Guide",
-      url: "github-hero/",
-      tags: "GitHub Git beginner repository commit fork branch pull request push clone .gitignore collaboration",
-      date: "Jul 2026"
-    },
-    {
-      title: "Gradient Descent by Hand",
-      url: "gradient-descent/",
-      tags: "gradient descent momentum Adam optimization loss surface derivatives learning rate",
-      date: "Jul 2026"
-    },
-    {
-      title: "Convex Optimization — Why It Matters in ML",
-      url: "convex-optimization/",
-      tags: "convex optimization convexity global minimum chord inequality objective function machine learning",
-      date: "Jul 2026"
-    },
-    {
-      title: "Backpropagation by Hand",
-      url: "backpropagation/",
-      tags: "backpropagation neural network chain rule gradient descent ReLU sigmoid deep learning",
-      date: "Jul 2026"
-    }
-  ];
-
-  const fuse = new Fuse(posts, {
-    keys: ['title', 'tags'],
-    threshold: 0.35,
-    minMatchCharLength: 2
-  });
-
-  const input = document.getElementById('search-input');
-  const resultsBox = document.getElementById('search-results');
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    if (q.length < 2) { resultsBox.style.display = 'none'; return; }
-    const results = fuse.search(q);
-    if (!results.length) { resultsBox.style.display = 'none'; return; }
-    resultsBox.innerHTML = results.map(r =>
-      `<a class="search-item" href="${r.item.url}">
-        ${r.item.title}
-        <span>${r.item.date}</span>
-      </a>`
-    ).join('');
-    resultsBox.style.display = 'block';
-  });
-
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.search-wrap')) resultsBox.style.display = 'none';
-  });
+  window.DDFS_POSTS = [
+  {
+    "title": "Sampling & Aliasing — Signal Lab",
+    "url": "sampling-aliasing/",
+    "tags": "sampling aliasing Nyquist theorem signal processing frequency sample rate anti-alias filter audio",
+    "date": "Aug 2026"
+  },
+  {
+    "title": "Gradient Descent by Hand",
+    "url": "gradient-descent/",
+    "tags": "gradient descent momentum Adam optimization loss surface derivatives learning rate",
+    "date": "Jul 2026"
+  },
+  {
+    "title": "Backpropagation by Hand",
+    "url": "backpropagation/",
+    "tags": "backpropagation neural network chain rule gradient descent ReLU sigmoid deep learning",
+    "date": "Jul 2026"
+  },
+  {
+    "title": "Convex Optimization — Why It Matters in ML",
+    "url": "convex-optimization/",
+    "tags": "convex optimization convexity global minimum chord inequality objective function machine learning",
+    "date": "Jul 2026"
+  },
+  {
+    "title": "GitHub Hero — Beginner Field Guide",
+    "url": "github-hero/",
+    "tags": "GitHub Git beginner repository commit fork branch pull request push clone .gitignore collaboration",
+    "date": "Jul 2026"
+  },
+  {
+    "title": "CNN — Matrix Operations Deep Dive",
+    "url": "cnn/",
+    "tags": "CNN convolutional neural network matrix convolution ReLU max pooling flatten fully connected deep learning",
+    "date": "Jun 2026"
+  },
+  {
+    "title": "Kubernetes & Containers from Scratch",
+    "url": "kubernetes/",
+    "tags": "Kubernetes Docker Podman containers kubectl kind minikube DevOps containerization deployment service YAML orchestration",
+    "date": "Jun 2026"
+  },
+  {
+    "title": "Ordinary Least Squares (OLS) Deep Dive",
+    "url": "ols/",
+    "tags": "OLS ordinary least squares linear regression matrix normal equation gradient descent residuals statistics machine learning optimization",
+    "date": "Jun 2026"
+  }
+];
 </script>
+<script src="home.js?v=3"></script>
 
 </body>
 </html>

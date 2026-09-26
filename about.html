@@ -9,22 +9,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="theme.js?v=2"></script>
-  <link rel="stylesheet" href="style.css?v=2" />
+  <script src="theme.js?v=3"></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' aria-hidden='true'%3E%3Cdefs%3E%3ClinearGradient id='ddfs-lg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c83ff'/%3E%3Cstop offset='1' stop-color='%232dd4bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23ddfs-lg)'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M7 10.5c3-2.4 6-2.4 9 0s6 2.4 9 0'/%3E%3Cpath d='M7 16.5c3-2.4 6-2.4 9 0s6 2.4 9 0' opacity='.78'/%3E%3Cpath d='M7 22.5c3-2.4 6-2.4 9 0s6 2.4 9 0' opacity='.55'/%3E%3C/g%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="home.css?v=3" />
 </head>
-<body>
+<body class="home">
 
 <!-- ═══ TOP NAV ═══ -->
 <nav class="top-nav">
   <a href="/" class="nav-brand">
-    <span class="nav-brand-icon">🏊</span>
+    <span class="nav-brand-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="ddfs-lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c83ff"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#ddfs-lg)"/><g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M7 10.5c3-2.4 6-2.4 9 0s6 2.4 9 0"/><path d="M7 16.5c3-2.4 6-2.4 9 0s6 2.4 9 0" opacity=".78"/><path d="M7 22.5c3-2.4 6-2.4 9 0s6 2.4 9 0" opacity=".55"/></g></svg></span>
     <span class="nav-brand-text">Deep Dive From Scratch</span>
   </a>
   <div class="nav-right">
     <div class="nav-links">
-      <a href="/">Home</a>
-      <a href="/about.html">About</a>
-      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc">☕ Buy me a coffee</a>
+      <a href="/" class="hide-sm">Home</a>
+      <a href="/about.html" class="hide-sm">About</a>
+      <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="nav-bmc" aria-label="Buy me a coffee">☕<span class="bmc-text"> Buy me a coffee</span></a>
     </div>
     <button class="theme-toggle" data-theme-toggle onclick="DDFS.toggleTheme()" aria-label="Toggle theme">
       <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
@@ -46,16 +48,19 @@
 </nav>
 
 <!-- ═══ HERO ═══ -->
-<section class="hero">
-  <div class="hero-tag">About</div>
-  <h1>The Mind Behind<br>Deep Dive From Scratch</h1>
-  <p>Step-by-step explainers for the ideas, algorithms, and tools behind modern technology — made visual, practical, and easy to explore.</p>
+<section class="hero hero-x">
+  <canvas class="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-tag rise"><span class="pulse"></span>About</div>
+  <h1 class="rise" style="--d:1">The Mind Behind<br>Deep Dive From Scratch</h1>
+  <p class="hero-lede rise" style="--d:2">Step-by-step explainers for the ideas, algorithms, and tools behind modern technology — made visual, practical, and easy to explore.</p>
 </section>
 
 <!-- ═══ MAIN ═══ -->
-<main class="main">
+<main class="main main-x">
 
-  <div class="about-box" id="about">
+  <div class="about-grid"><div class="about-box" id="about">
     <div class="about-avatar">👤</div>
     <div>
       <h2>About this blog</h2>
@@ -64,7 +69,9 @@
     </div>
   </div>
 
-  <div class="section-title">What to expect</div>
+  </div>
+  <div class="section-head"><div><div class="eyebrow">What to expect</div><h2>Built to be explored</h2></div></div>
+  <div class="about-grid">
   <div class="about-box" style="border-left-color: var(--accent2);">
     <div class="about-avatar">🎯</div>
     <div>
@@ -81,8 +88,10 @@
     </div>
   </div>
 
-  <div class="support-box">
-    <h2>☕ Support this blog</h2>
+  </div>
+  <div class="support-box support-x">
+    <span class="cup" aria-hidden="true">☕</span>
+    <h2>Support this blog</h2>
     <p>All content is free and open source. If these visualizers helped you understand ML better, consider buying me a coffee — it keeps the posts coming!</p>
     <a href="https://buymeacoffee.com/zichao98" target="_blank" rel="noopener" class="bmc-btn">
       ☕ Buy me a coffee
@@ -96,5 +105,6 @@
   <p>© 2026 Deep Dive From Scratch · Built with plain HTML, math, and curiosity · <a href="https://github.com/zichao98" target="_blank">GitHub</a></p>
 </footer>
 
+<script src="home.js?v=3"></script>
 </body>
 </html>
