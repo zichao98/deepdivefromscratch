@@ -199,6 +199,11 @@ input[type=range].slider::-moz-range-thumb { width: 16px; height: 16px; border-r
 .step-table td { text-align: right; padding: .38rem .6rem; border-top: 1px solid var(--border-light); color: var(--text-secondary); white-space: nowrap; }
 .step-table th:first-child, .step-table td:first-child { text-align: left; }
 .step-table tr.new td { animation: row-in .5s var(--ease); background: rgba(124, 131, 255, .08); }
+.info-table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 14px; border: 1px solid var(--border-light); }
+.info-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: .86rem; line-height: 1.5; }
+.info-table th { background: var(--surface2); color: var(--text-muted); font: 600 .72rem var(--font-mono); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: .6rem .8rem; }
+.info-table td { padding: .6rem .8rem; border-top: 1px solid var(--border-light); color: var(--text-secondary); vertical-align: top; }
+.info-table td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
 @keyframes row-in { from { opacity: 0; transform: translateY(-4px); } }
 
 /* ─── Step-by-step derivation ─── */
