@@ -22,7 +22,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = "https://deepdivefromscratch.zichaoleng55.workers.dev"
-VERSION = "9"  # bump to bust caches after changing shared assets
+VERSION = "10"  # bump to bust caches after changing shared assets
 
 
 def partials():
