@@ -104,7 +104,38 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(function () {}); }
 
+  // Fake terminal inside `el`. handler(cmd, api) prints output via api.print(text, cls). Chips [data-cmd] inside `scope` fill the input.
+  function term(el, opt) {
+    opt = opt || {};
+    el.classList.add('term');
+    el.innerHTML = '<div class="term-out" aria-live="polite"></div><form class="term-line"><span class="p"></span><input type="text" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Terminal command"></form>';
+    var outEl = $(el, '.term-out'), form = $(el, 'form'), input = $(el, 'input'), pr = $(el, '.p'), hist = [], hi = 0;
+    var api = {
+      print: function (s, cls) { var d = document.createElement('div'); if (cls) d.className = cls; d.textContent = s; outEl.appendChild(d); outEl.scrollTop = outEl.scrollHeight; },
+      html: function (h) { var d = document.createElement('div'); d.innerHTML = h; outEl.appendChild(d); outEl.scrollTop = outEl.scrollHeight; },
+      clear: function () { outEl.innerHTML = ''; },
+      prompt: function (p) { pr.textContent = p; },
+      run: function (cmd) {
+        api.html('<span class="p">' + esc(pr.textContent) + '</span> ' + esc(cmd));
+        cmd = cmd.trim(); if (!cmd) return;
+        hist.push(cmd); hi = hist.length;
+        if (cmd === 'clear') { api.clear(); return; }
+        opt.handler(cmd, api);
+      },
+      fill: function (cmd) { input.value = cmd; input.focus({ preventScroll: true }); input.setSelectionRange(cmd.length, cmd.length); },
+      input: input
+    };
+    form.addEventListener('submit', function (e) { e.preventDefault(); var v = input.value; input.value = ''; api.run(v); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowUp' && hi > 0) { hi--; input.value = hist[hi]; e.preventDefault(); }
+      else if (e.key === 'ArrowDown') { hi = Math.min(hist.length, hi + 1); input.value = hist[hi] || ''; e.preventDefault(); }
+    });
+    if (opt.scope) opt.scope.addEventListener('click', function (e) { var c = e.target.closest('[data-cmd]'); if (c) api.fill(c.dataset.cmd); });
+    api.prompt(opt.prompt || '$');
+    return api;
+  }
+
   window.Kit = { $: $, $$: $$, out: out, note: note, fmt: fmt, col: col, rgba: rgba, arrow: arrow, dot: dot, text: text, roundRect: roundRect,
-    drag: drag, slider: slider, setSlider: setSlider, seg: seg, on: on, player: player, scale: scale, frame: frame, range: range, rng: rng, esc: esc, typeset: typeset,
+    drag: drag, slider: slider, setSlider: setSlider, seg: seg, on: on, player: player, scale: scale, frame: frame, range: range, rng: rng, esc: esc, typeset: typeset, term: term,
     done: L.done, canvas: L.canvas, reduce: L.reduce };
 })();
