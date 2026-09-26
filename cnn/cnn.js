@@ -1,571 +1,279 @@
-﻿/* ============================================================
-   CNN by Hand -- core logic
-   All matrix ops run live in the browser; no dependencies.
-   ============================================================ */
+/* CNN lesson — interactive labs. Uses window.Kit (lesson/labkit.js). */
+(function () {
+  'use strict';
+  var K = window.Kit, $ = K.$, out = K.out, note = K.note;
 
-// --- MathJax helpers (must be at top -- used by render functions below) --------
-let _mjQueue = [];
-let _mjReady = false;
-
-// Render a LaTeX string into container using the official MathJax 3 pattern:
-// typesetClear -> set innerHTML with delimiters -> typesetPromise.
-function renderMath(container, latex, display) {
-  if (display === undefined) display = true;
-  var wrapped = display ? ('\\[' + latex + '\\]') : ('\\(' + latex + '\\)');
-  if (_mjReady && window.MathJax && MathJax.typesetPromise) {
-    MathJax.typesetClear([container]);
-    container.innerHTML = wrapped;
-    MathJax.typesetPromise([container]).catch(console.error);
-  } else {
-    container.innerHTML = wrapped;
-    _mjQueue.push(container);
+  function zeros(n, m) { var a = []; for (var i = 0; i < n; i++) { a.push([]); for (var j = 0; j < (m || n); j++) a[i].push(0); } return a; }
+  function conv(I, Kr) {
+    var n = I.length, k = Kr.length, o = zeros(n - k + 1);
+    for (var i = 0; i <= n - k; i++) for (var j = 0; j <= n - k; j++) { var s = 0; for (var a = 0; a < k; a++) for (var b = 0; b < k; b++) s += I[i + a][j + b] * Kr[a][b]; o[i][j] = s; }
+    return o;
   }
-}
-
-// Typeset static LaTeX already present as text inside el.
-function typeset(el) {
-  if (_mjReady) {
-    MathJax.typesetClear([el]);
-    MathJax.typesetPromise([el]).catch(console.error);
-  } else {
-    _mjQueue.push(el);
-  }
-}
-
-function _flushMjQueue() {
-  _mjReady = true;
-  if (_mjQueue.length) {
-    MathJax.typesetPromise(_mjQueue).catch(console.error);
-    _mjQueue = [];
-  }
-}
-
-// --- State -------------------------------------------------------------------
-const ROWS = 5, COLS = 5;
-const K = 3; // kernel size
-
-let inputMatrix = [
-  [0,1,1,1,0],
-  [1,0,0,0,1],
-  [1,0,1,0,1],
-  [1,0,0,0,1],
-  [0,1,1,1,0],
-];
-
-let kernel = [
-  [ 1,  0, -1],
-  [ 2,  0, -2],
-  [ 1,  0, -1],
-];
-
-let featureMap = [];
-let reluMap    = [];
-let poolMap    = [];
-let flatVec    = [];
-let fcWeights  = [];
-let fcBias     = [];
-let logits     = [];
-let softmaxOut = [];
-
-const CLASS_LABELS = ['Class A', 'Class B', 'Class C'];
-
-let currentStep = 0;
-const TOTAL_STEPS = 6;
-
-// --- Utility -----------------------------------------------------------------
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-function fmt(v) { return Number.isInteger(v) ? String(v) : v.toFixed(3); }
-function round2(v) { return Math.round(v * 100) / 100; }
-
-// --- Matrix ops --------------------------------------------------------------
-function convolve(X, K) {
-  const rOut = X.length - K.length + 1;
-  const cOut = X[0].length - K[0].length + 1;
-  const Z = [];
-  for (let i = 0; i < rOut; i++) {
-    Z.push([]);
-    for (let j = 0; j < cOut; j++) {
-      let sum = 0;
-      for (let m = 0; m < K.length; m++)
-        for (let n = 0; n < K[0].length; n++)
-          sum += X[i+m][j+n] * K[m][n];
-      Z[i].push(round2(sum));
+  function maxAbs(M) { var m = 1e-9; M.forEach(function (r) { r.forEach(function (v) { m = Math.max(m, Math.abs(v)); }); }); return m; }
+  function num(v) { return Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1); }
+  // Draw a matrix as cells. mode: 'img' (0..1 grayscale), 'div' (diverging), 'pos' (0..max), 'w' (kernel weights)
+  function cells(ctx, x0, y0, cs, M, mode, opts) {
+    opts = opts || {}; var c = K.col(), mx = opts.max || maxAbs(M);
+    for (var i = 0; i < M.length; i++) for (var j = 0; j < M[i].length; j++) {
+      var v = M[i][j], x = x0 + j * cs, y = y0 + i * cs, fill;
+      if (opts.pad && (i < opts.pad || j < opts.pad || i >= M.length - opts.pad || j >= M.length - opts.pad)) fill = K.rgba(c.muted, 0.12);
+      else if (mode === 'img') fill = v ? c.text : c.surface2;
+      else if (mode === 'pos') fill = K.rgba(c.accent2, 0.08 + 0.85 * Math.max(0, v) / mx);
+      else fill = v >= 0 ? K.rgba(c.accent2, 0.06 + 0.8 * v / mx) : K.rgba(c.bad, 0.06 + 0.8 * -v / mx);
+      ctx.fillStyle = fill; ctx.fillRect(x + 1, y + 1, cs - 2, cs - 2);
+      if (opts.nums && cs >= 16) K.text(ctx, num(v), x + cs / 2, y + cs / 2 + 4, mode === 'img' && v ? c.surface : c.text, '600 ' + Math.min(12, cs * 0.42) + 'px JetBrains Mono, monospace', 'center');
     }
+    if (opts.label) K.text(ctx, opts.label, x0, y0 - 8, c.text2, '600 11px Inter, sans-serif');
   }
-  return Z;
-}
+  function outline(ctx, x, y, w, h, color, lw) { ctx.strokeStyle = color; ctx.lineWidth = lw || 2.5; ctx.strokeRect(x, y, w, h); }
+  function hit(p, x0, y0, cs, n, m) { var j = Math.floor((p.x - x0) / cs), i = Math.floor((p.y - y0) / cs); return i >= 0 && j >= 0 && i < n && j < (m || n) ? [i, j] : null; }
+  function paintable(el, api, getGrid, onChange) {
+    var val = 1;
+    K.drag(api, el, function (p, start) {
+      var g = getGrid(); var h = hit(p, g.x0, g.y0, g.cs, g.n); if (!h) return;
+      if (start) val = g.M[h[0]][h[1]] ? 0 : 1;
+      if (g.M[h[0]][h[1]] !== val) { g.M[h[0]][h[1]] = val; onChange(); }
+    });
+  }
 
-function relu(Z) {
-  return Z.map(function(row) { return row.map(function(v) { return Math.max(0, v); }); });
-}
+  /* ═════ Lab 0 — pixels ═════ */
+  (function () {
+    var lab = document.getElementById('lab-pixels'); if (!lab) return;
+    var M = zeros(10), nums = false, s, geo;
+    function count() { return M.reduce(function (a, r) { return a + r.reduce(function (x, y) { return x + y; }, 0); }, 0); }
+    function update() { var n = count(); out(lab, 'n', n); if (n >= 8) K.done('cnn-px-draw'); s && s.redraw(); }
+    s = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var c = K.col(), cs = Math.floor(Math.min((w - 60) / 20, (h - 50) / 10)), x0 = (w - cs * 20 - 30) / 2, y0 = (h - cs * 10) / 2 + 8;
+      geo = { x0: x0, y0: y0, cs: cs, n: 10, M: M };
+      cells(ctx, x0, y0, cs, M, 'img', { label: 'What you see' });
+      if (nums) cells(ctx, x0 + cs * 10 + 30, y0, cs, M, 'img', { nums: true, label: 'What the computer sees' });
+      else { ctx.fillStyle = c.surface2; ctx.fillRect(x0 + cs * 10 + 30, y0, cs * 10, cs * 10); K.text(ctx, 'numbers hidden', x0 + cs * 15 + 30, y0 + cs * 5, c.muted, '600 12px Inter, sans-serif', 'center'); }
+    });
+    paintable($(lab, 'canvas'), s, function () { return geo; }, update);
+    $(lab, '[data-in="nums"]').addEventListener('change', function (e) { nums = e.target.checked; if (nums) K.done('cnn-px-nums'); s.redraw(); });
+    $(lab, '[data-reset]').addEventListener('click', function () { M.forEach(function (r) { r.fill(0); }); update(); });
+    update();
+  })();
 
-function maxPool(A, kSize, stride) {
-  if (kSize === undefined) kSize = 2;
-  if (stride === undefined) stride = 1;
-  const rOut = Math.floor((A.length    - kSize) / stride) + 1;
-  const cOut = Math.floor((A[0].length - kSize) / stride) + 1;
-  const P = [];
-  for (let i = 0; i < rOut; i++) {
-    P.push([]);
-    for (let j = 0; j < cOut; j++) {
-      let mx = -Infinity;
-      for (let m = 0; m < kSize; m++)
-        for (let n = 0; n < kSize; n++)
-          mx = Math.max(mx, A[i*stride+m][j*stride+n]);
-      P[i].push(round2(mx));
+  /* ─── Shared images and kernels ─── */
+  function makeImg(kind) {
+    var I = zeros(8);
+    for (var i = 0; i < 8; i++) for (var j = 0; j < 8; j++) {
+      if (kind === 'box' && i >= 2 && i <= 5 && j >= 2 && j <= 5) I[i][j] = 1;
+      if (kind === 't' && ((i === 1 && j >= 1 && j <= 6) || (j >= 3 && j <= 4 && i >= 1 && i <= 6))) I[i][j] = 1;
+      if (kind === 'diag' && (i === j || i === j + 1)) I[i][j] = 1;
     }
+    return I;
   }
-  return P;
-}
+  var KERNELS = {
+    vedge: [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]],
+    hedge: [[-1, -1, -1], [0, 0, 0], [1, 1, 1]],
+    blur: [[1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9]],
+    sharp: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]]
+  };
+  function copy(M) { return M.map(function (r) { return r.slice(); }); }
 
-function flatten(P) {
-  return P.reduce(function(acc, row) { return acc.concat(row); }, []);
-}
-
-function matVecMul(W, v, b) {
-  return W.map(function(row, i) {
-    return round2(row.reduce(function(s, w, j) { return s + w * v[j]; }, 0) + b[i]);
-  });
-}
-
-function softmax(z) {
-  const max = Math.max.apply(null, z);
-  const exps = z.map(function(v) { return Math.exp(v - max); });
-  const sum = exps.reduce(function(a, b) { return a + b; }, 0);
-  return exps.map(function(e) { return round2(e / sum); });
-}
-
-function initWeights(nOut, nIn) {
-  return Array.from({length: nOut}, function() {
-    return Array.from({length: nIn}, function() { return round2((Math.random() - 0.5) * 1.2); });
-  });
-}
-
-// --- Recompute pipeline ------------------------------------------------------
-function recompute() {
-  featureMap = convolve(inputMatrix, kernel);
-  reluMap    = relu(featureMap);
-  poolMap    = maxPool(reluMap, 2, 1);
-  flatVec    = flatten(poolMap);
-  if (fcWeights.length === 0 || fcWeights[0].length !== flatVec.length) {
-    fcWeights = initWeights(3, flatVec.length);
-    fcBias    = [0.1, -0.1, 0.05];
-  }
-  logits     = matVecMul(fcWeights, flatVec, fcBias);
-  softmaxOut = softmax(logits);
-}
-
-// --- Grid rendering ----------------------------------------------------------
-function renderGrid(containerId, matrix, opts) {
-  opts = opts || {};
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const clickable  = opts.clickable  || false;
-  const small      = opts.small      || false;
-  const colorMode  = opts.colorMode  || 'binary';
-  const onCellClick = opts.onCellClick;
-  const onCellHover = opts.onCellHover;
-
-  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', max-content)';
-  if (small) el.classList.add('small');
-  el.innerHTML = '';
-
-  matrix.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      if (clickable) cell.classList.add('clickable');
-      if (colorMode === 'binary') {
-        cell.classList.add(val ? 'val-1' : 'val-0');
-      } else if (colorMode === 'signed') {
-        cell.classList.add(val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      } else {
-        cell.classList.add('val-0');
+  /* ═════ Lab 1 — convolution ═════ */
+  (function () {
+    var lab = document.getElementById('lab-conv'); if (!lab) return;
+    var kname = 'vedge', iname = 'box', I = makeImg('box'), Kr = copy(KERNELS.vedge), pos = -1, player, s, geo;
+    function explain() {
+      if (pos < 0) return note(lab, 'Press "Next position" to compute the first output value.');
+      var i = Math.floor(pos / 6), j = pos % 6, terms = [], sum = 0;
+      for (var a = 0; a < 3; a++) for (var b = 0; b < 3; b++) { var x = I[i + a][j + b], wv = Kr[a][b]; sum += x * wv; if (x && wv) terms.push(num(x) + '×' + num(wv)); }
+      var txt = 'Position (' + i + ', ' + j + '): ' + (terms.length ? terms.join(' + ') : 'every product is 0') + ' = <b>' + num(sum) + '</b>' + (terms.length < 9 ? ' <span style="color:var(--text-muted)">(zero products omitted)</span>' : '');
+      if (pos === 35) {
+        K.done('cnn-c-full');
+        if (JSON.stringify(Kr) === JSON.stringify(KERNELS.vedge) && JSON.stringify(I) === JSON.stringify(makeImg('box'))) { K.done('cnn-c-edge'); txt = '<b>Only the box\'s vertical edges light up:</b> the left edge (dark→bright) gives +3 (teal), the right edge (bright→dark) gives −3 (red), and flat areas give 0. Top and bottom edges are invisible to this kernel.'; }
+        else txt = '<b>Done:</b> every position computed with the same 9 weights. ' + txt;
       }
-      cell.textContent = fmt(val);
-      if (clickable && onCellClick) cell.addEventListener('click', function() { onCellClick(i, j, cell); });
-      if (onCellHover) cell.addEventListener('mouseenter', function() { onCellHover(i, j); });
-      el.appendChild(cell);
-    });
-  });
-}
-
-function renderVector(containerId, vec, opts) {
-  opts = opts || {};
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const small     = opts.small     || false;
-  const colorMode = opts.colorMode || 'signed';
-  if (small) el.classList.add('small');
-  el.innerHTML = '';
-  vec.forEach(function(v, i) {
-    const cell = document.createElement('div');
-    cell.className = 'cell';
-    if (colorMode === 'binary') cell.classList.add(v ? 'val-1' : 'val-0');
-    else cell.classList.add(v > 0 ? 'val-pos' : v < 0 ? 'val-neg' : 'val-0');
-    cell.textContent = fmt(v);
-    el.appendChild(cell);
-  });
-}
-
-function renderNumberMatrix(containerId, matrix, opts) {
-  opts = opts || {};
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const colorMode = opts.colorMode || 'signed';
-  const small     = opts.small     || false;
-  el.style.gridTemplateColumns = 'repeat(' + matrix[0].length + ', max-content)';
-  if (small) el.classList.add('small');
-  el.innerHTML = '';
-  matrix.forEach(function(row) {
-    row.forEach(function(val) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      if (colorMode === 'binary') cell.classList.add(val ? 'val-1' : 'val-0');
-      else cell.classList.add(val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      cell.textContent = fmt(val);
-      el.appendChild(cell);
-    });
-  });
-}
-
-// --- Step 0: Input -----------------------------------------------------------
-function renderStep0() {
-  renderGrid('input-grid', inputMatrix, {
-    clickable: true,
-    colorMode: 'binary',
-    onCellClick: function(i, j) {
-      inputMatrix[i][j] = inputMatrix[i][j] ? 0 : 1;
-      recompute();
-      renderStep0();
-    },
-  });
-  renderNumberMatrix('input-matrix-display', inputMatrix, { colorMode: 'binary' });
-}
-
-document.getElementById('btn-clear').addEventListener('click', function() {
-  inputMatrix = Array.from({length: ROWS}, function() { return Array(COLS).fill(0); });
-  recompute(); renderStep0();
-});
-document.getElementById('btn-random').addEventListener('click', function() {
-  inputMatrix = Array.from({length: ROWS}, function() {
-    return Array.from({length: COLS}, function() { return Math.random() > 0.5 ? 1 : 0; });
-  });
-  recompute(); renderStep0();
-});
-document.getElementById('btn-preset-edge').addEventListener('click', function() {
-  inputMatrix = [
-    [1,1,1,1,1],
-    [0,0,0,0,0],
-    [1,1,1,1,1],
-    [0,0,0,0,0],
-    [1,1,1,1,1],
-  ];
-  recompute(); renderStep0();
-});
-document.getElementById('btn-preset-cross').addEventListener('click', function() {
-  inputMatrix = [
-    [0,0,1,0,0],
-    [0,0,1,0,0],
-    [1,1,1,1,1],
-    [0,0,1,0,0],
-    [0,0,1,0,0],
-  ];
-  recompute(); renderStep0();
-});
-
-// --- Step 1: Convolution -----------------------------------------------------
-function renderStep1() {
-  renderGrid('conv-input-grid', inputMatrix, { colorMode: 'binary', small: true });
-
-  const kEl = document.getElementById('kernel-grid');
-  kEl.style.gridTemplateColumns = 'repeat(' + kernel[0].length + ', max-content)';
-  kEl.innerHTML = '';
-  kernel.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      cell.className = 'cell clickable editable-k';
-      cell.classList.add(val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      cell.textContent = fmt(val);
-      cell.title = 'Click to cycle value';
-      cell.addEventListener('click', function() {
-        const cycle = [-2, -1, 0, 1, 2];
-        const idx = cycle.indexOf(kernel[i][j]);
-        kernel[i][j] = cycle[(idx + 1) % cycle.length];
-        recompute();
-        renderStep1();
-      });
-      kEl.appendChild(cell);
-    });
-  });
-
-  const outEl = document.getElementById('conv-output-grid');
-  outEl.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', max-content)';
-  outEl.innerHTML = '';
-  featureMap.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      cell.className = 'cell clickable';
-      cell.classList.add(val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      cell.textContent = fmt(val);
-      cell.addEventListener('click',      function() { showConvDetail(i, j); });
-      cell.addEventListener('mouseenter', function() { showConvDetail(i, j); });
-      outEl.appendChild(cell);
-    });
-  });
-}
-
-function showConvDetail(oi, oj) {
-  document.getElementById('conv-detail').classList.remove('hidden');
-  document.getElementById('conv-pos').textContent = '(' + oi + ', ' + oj + ')';
-
-  const terms = [];
-  let sum = 0;
-  kernel.forEach(function(krow, m) {
-    krow.forEach(function(kval, n) {
-      const xval = inputMatrix[oi+m][oj+n];
-      const prod = round2(xval * kval);
-      sum = round2(sum + prod);
-      // Double backslash needed in JS strings for LaTeX commands
-      terms.push('X_{' + (oi+m) + ',' + (oj+n) + '} \\cdot K_{' + m + ',' + n + '}\\;(' + xval + '\\cdot' + kval + '=' + prod + ')');
-    });
-  });
-
-  const latex = '\\begin{aligned} Z_{' + oi + ',' + oj + '} &= ' + terms.join(' \\\\ &\\quad + ') + ' \\\\ &= \\boldsymbol{' + round2(sum) + '} \\end{aligned}';
-  renderMath(document.getElementById('conv-detail-content'), latex, true);
-}
-
-document.getElementById('btn-kernel-edge-h').addEventListener('click', function() {
-  kernel = [[-1,-1,-1],[0,0,0],[1,1,1]]; recompute(); renderStep1();
-});
-document.getElementById('btn-kernel-edge-v').addEventListener('click', function() {
-  kernel = [[-1,0,1],[-2,0,2],[-1,0,1]]; recompute(); renderStep1();
-});
-document.getElementById('btn-kernel-sharpen').addEventListener('click', function() {
-  kernel = [[0,-1,0],[-1,5,-1],[0,-1,0]]; recompute(); renderStep1();
-});
-document.getElementById('btn-kernel-blur').addEventListener('click', function() {
-  kernel = [[1,1,1],[1,1,1],[1,1,1]]; recompute(); renderStep1();
-});
-
-// --- Step 2: ReLU ------------------------------------------------------------
-function renderStep2() {
-  const rIn = document.getElementById('relu-input-grid');
-  rIn.style.gridTemplateColumns = 'repeat(' + featureMap[0].length + ', max-content)';
-  rIn.innerHTML = '';
-  featureMap.forEach(function(row) {
-    row.forEach(function(val) {
-      const cell = document.createElement('div');
-      cell.className = 'cell ' + (val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      cell.textContent = fmt(val);
-      rIn.appendChild(cell);
-    });
-  });
-
-  const rOut = document.getElementById('relu-output-grid');
-  rOut.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', max-content)';
-  rOut.innerHTML = '';
-  featureMap.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      const was_negative = val < 0;
-      cell.className = 'cell ' + (was_negative ? 'relu-killed' : 'relu-pass');
-      cell.textContent = fmt(reluMap[i][j]);
-      cell.title = was_negative
-        ? fmt(val) + ' -> 0 (zeroed by ReLU)'
-        : fmt(val) + ' -> ' + fmt(val) + ' (passed through)';
-      rOut.appendChild(cell);
-    });
-  });
-
-  renderNumberMatrix('relu-z-matrix', featureMap, { colorMode: 'signed', small: true });
-  renderNumberMatrix('relu-a-matrix', reluMap,    { colorMode: 'signed', small: true });
-}
-
-// --- Step 3: Max Pooling -----------------------------------------------------
-function renderStep3() {
-  const pIn = document.getElementById('pool-input-grid');
-  pIn.style.gridTemplateColumns = 'repeat(' + reluMap[0].length + ', max-content)';
-  pIn.innerHTML = '';
-  reluMap.forEach(function(row) {
-    row.forEach(function(val) {
-      const cell = document.createElement('div');
-      cell.className = 'cell ' + (val > 0 ? 'val-pos' : 'val-0');
-      cell.textContent = fmt(val);
-      pIn.appendChild(cell);
-    });
-  });
-
-  const pOut = document.getElementById('pool-output-grid');
-  pOut.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', max-content)';
-  pOut.innerHTML = '';
-  poolMap.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      cell.className = 'cell pool-max clickable';
-      cell.textContent = fmt(val);
-      cell.addEventListener('mouseenter', function() { showPoolDetail(i, j); });
-      pOut.appendChild(cell);
-    });
-  });
-}
-
-function showPoolDetail(oi, oj) {
-  const stride = 1, kSize = 2;
-  document.getElementById('pool-detail').classList.remove('hidden');
-  document.getElementById('pool-pos').textContent = '(' + oi + ', ' + oj + ')';
-
-  const vals = [];
-  for (let m = 0; m < kSize; m++)
-    for (let n = 0; n < kSize; n++)
-      vals.push({ r: oi*stride+m, c: oj*stride+n, v: reluMap[oi*stride+m][oj*stride+n] });
-
-  const maxV = Math.max.apply(null, vals.map(function(x) { return x.v; }));
-  const comparisons = vals.map(function(x) {
-    return 'A_{' + x.r + ',' + x.c + '}=' + fmt(x.v) + (x.v === maxV ? '\\;(\\leftarrow\\text{max})' : '');
-  }).join(',\\quad ');
-  const latex = '\\text{compare:}\\; ' + comparisons + ' \\;\\Rightarrow\\; P_{' + oi + ',' + oj + '} = \\boldsymbol{' + fmt(maxV) + '}';
-  renderMath(document.getElementById('pool-detail-content'), latex, true);
-}
-
-// --- Step 4: Flatten ---------------------------------------------------------
-function renderStep4() {
-  const fIn = document.getElementById('flatten-input-grid');
-  fIn.style.gridTemplateColumns = 'repeat(' + poolMap[0].length + ', max-content)';
-  fIn.innerHTML = '';
-  poolMap.forEach(function(row, i) {
-    row.forEach(function(val, j) {
-      const cell = document.createElement('div');
-      cell.className = 'cell ' + (val > 0 ? 'val-pos' : 'val-0');
-      cell.textContent = fmt(val);
-      const idx = i * poolMap[0].length + j;
-      cell.title = '-> v[' + idx + ']';
-      fIn.appendChild(cell);
-    });
-  });
-
-  const fVec = document.getElementById('flatten-vector');
-  fVec.innerHTML = '';
-  flatVec.forEach(function(val, idx) {
-    const cell = document.createElement('div');
-    cell.className = 'cell ' + (val > 0 ? 'val-pos' : 'val-0');
-    cell.style.cssText = 'width:120px;height:32px;font-size:0.78rem;';
-    cell.textContent = 'v[' + idx + '] = ' + fmt(val);
-    fVec.appendChild(cell);
-  });
-}
-
-// --- Step 5: FC Layer --------------------------------------------------------
-function renderStep5() {
-  const wEl = document.getElementById('fc-weight-grid');
-  wEl.style.gridTemplateColumns = 'repeat(' + fcWeights[0].length + ', max-content)';
-  wEl.innerHTML = '';
-  fcWeights.forEach(function(row) {
-    row.forEach(function(val) {
-      const cell = document.createElement('div');
-      cell.className = 'cell fc-cell ' + (val > 0 ? 'val-pos' : val < 0 ? 'val-neg' : 'val-0');
-      cell.textContent = fmt(val);
-      wEl.appendChild(cell);
-    });
-  });
-
-  renderVector('fc-vector-display', flatVec, { small: true, colorMode: 'signed' });
-  renderVector('fc-bias-display',   fcBias,  { small: true, colorMode: 'signed' });
-  renderVector('fc-logits-display', logits,  { small: true, colorMode: 'signed' });
-
-  const barsEl = document.getElementById('softmax-bars');
-  barsEl.innerHTML = '';
-  softmaxOut.forEach(function(p, i) {
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML =
-      '<span class="bar-label">' + CLASS_LABELS[i] + '</span>' +
-      '<div class="bar-track">' +
-        '<div class="bar-fill" style="width:' + (p*100).toFixed(1) + '%">' +
-          (p > 0.12 ? (p*100).toFixed(1) + '%' : '') +
-        '</div>' +
-      '</div>' +
-      '<span class="bar-pct">' + (p*100).toFixed(1) + '%</span>';
-    barsEl.appendChild(row);
-  });
-
-  // FC detail: render each neuron's dot product as LaTeX inline
-  const fcEl = document.getElementById('fc-detail-content');
-  fcEl.innerHTML = '';
-  fcWeights.forEach(function(row, k) {
-    const termParts = row.map(function(w, j) {
-      return fmt(w) + ' \\cdot ' + fmt(flatVec[j]);
-    });
-    const latex = '\\textbf{' + CLASS_LABELS[k] + '}:\\; z_' + k + ' = ' +
-      termParts.join(' + ') + ' + ' + fmt(fcBias[k]) +
-      ' = \\boldsymbol{' + fmt(logits[k]) + '}' +
-      ' \\;\\rightarrow\\; \\hat{y}_' + k + ' = \\boldsymbol{' + (softmaxOut[k]*100).toFixed(1) + '\\%}';
-
-    const div = document.createElement('div');
-    div.className = 'fc-row-detail';
-    fcEl.appendChild(div);
-    renderMath(div, latex, false);
-  });
-}
-
-// --- Step navigation ---------------------------------------------------------
-const panels   = document.querySelectorAll('.step-panel');
-const stepBtns = document.querySelectorAll('.step-btn');
-
-function goToStep(s) {
-  currentStep = clamp(s, 0, TOTAL_STEPS - 1);
-
-  panels.forEach(function(p, i)   { p.classList.toggle('active', i === currentStep); });
-  stepBtns.forEach(function(b, i) { b.classList.toggle('active', i === currentStep); });
-
-  document.getElementById('btn-prev').disabled = currentStep === 0;
-  document.getElementById('btn-next').disabled = currentStep === TOTAL_STEPS - 1;
-  document.getElementById('step-indicator').textContent = 'Step ' + (currentStep + 1) + ' / ' + TOTAL_STEPS;
-
-  const renders = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5];
-  renders[currentStep]();
-  typeset(panels[currentStep]);
-}
-
-document.getElementById('btn-prev').addEventListener('click', function() { goToStep(currentStep - 1); });
-document.getElementById('btn-next').addEventListener('click', function() { goToStep(currentStep + 1); });
-stepBtns.forEach(function(btn, i) { btn.addEventListener('click', function() { goToStep(i); }); });
-
-// --- Boot --------------------------------------------------------------------
-recompute();
-
-// The MathJax script is loaded async, so MathJax.typesetPromise may not exist
-// yet when this file runs. Poll until it is available, then mark ready and
-// render. This guarantees renderMath() uses the real typeset path, not the
-// raw-text fallback.
-function _whenMathJaxReady(cb) {
-  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
-    MathJax.startup.promise.then(cb).catch(cb);
-    return;
-  }
-  if (window.MathJax && MathJax.typesetPromise) {
-    cb();
-    return;
-  }
-  // Not loaded yet ??poll.
-  let tries = 0;
-  const timer = setInterval(function() {
-    tries++;
-    if (window.MathJax && MathJax.typesetPromise) {
-      clearInterval(timer);
-      cb();
-    } else if (tries > 200) { // ~10s timeout
-      clearInterval(timer);
-      cb(); // give up waiting, render anyway
+      note(lab, txt, pos === 35 ? 'good' : '');
     }
-  }, 50);
-}
+    function update() { explain(); s && s.redraw(); }
+    s = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var c = K.col(), narrow = w < 560, cs, x0, y0, kx, ky, ox, oy;
+      if (narrow) {
+        cs = Math.floor(Math.min((w - 58) / 14, (h - 104) / 11)); x0 = (w - cs * 14 - 30) / 2; y0 = 74;
+        ox = x0 + cs * 8 + 30; oy = y0 + cs; kx = ox + cs * 1.5; ky = y0 + cs * 8 + 20;
+      } else {
+        cs = Math.floor(Math.min((w - 80) / 17, (h - 50) / 8)); x0 = (w - cs * 17 - 60) / 2; y0 = (h - cs * 8) / 2 + 10;
+        kx = x0 + cs * 8 + 30; ky = y0 + cs * 2.5; ox = kx + cs * 3 + 30; oy = y0 + cs;
+      }
+      geo = { ix: x0, iy: y0, kx: kx, ky: ky, cs: cs };
+      var Z = conv(I, Kr), mx = maxAbs(Z), shown = Z.map(function (r, i) { return r.map(function (v, j) { return i * 6 + j <= pos ? v : 0; }); });
+      cells(ctx, x0, y0, cs, I, 'img', { nums: true, label: 'Input X' });
+      cells(ctx, kx, ky, cs, Kr, 'div', { nums: true, label: 'Kernel K' });
+      cells(ctx, ox, oy, cs, shown, 'div', { nums: true, max: mx, label: 'Feature map Z' });
+      for (var q = pos + 1; q < 36; q++) { ctx.fillStyle = c.surface; ctx.fillRect(ox + (q % 6) * cs + 1, oy + Math.floor(q / 6) * cs + 1, cs - 2, cs - 2); }
+      if (pos >= 0) { var i = Math.floor(pos / 6), j = pos % 6; outline(ctx, x0 + j * cs, y0 + i * cs, cs * 3, cs * 3, c.hl, 3); outline(ctx, ox + j * cs, oy + i * cs, cs, cs, c.hl, 3); }
+      if (!narrow) { K.text(ctx, '⊛', x0 + cs * 8 + 15, y0 + cs * 4 + 6, c.muted, '18px sans-serif', 'center'); K.text(ctx, '=', kx + cs * 3 + 15, y0 + cs * 4 + 6, c.muted, '18px sans-serif', 'center'); }
+      else K.text(ctx, '→', x0 + cs * 8 + 15, y0 + cs * 4 + 6, c.muted, '18px sans-serif', 'center');
+    });
+    $(lab, 'canvas').addEventListener('pointerdown', function (e) {
+      var p = s.point(e), g = geo, hI = hit(p, g.ix, g.iy, g.cs, 8), hK = hit(p, g.kx, g.ky, g.cs, 3);
+      if (hI) { I[hI[0]][hI[1]] = I[hI[0]][hI[1]] ? 0 : 1; update(); }
+      else if (hK) {
+        var cyc = [-1, 0, 1, 2], v = Kr[hK[0]][hK[1]], idx = cyc.indexOf(Math.round(v));
+        Kr[hK[0]][hK[1]] = cyc[(idx + 1) % cyc.length]; K.done('cnn-c-edit'); pos = 35; update();
+        note(lab, 'You changed a kernel weight to <b>' + Kr[hK[0]][hK[1]] + '</b>. The whole map was recomputed with the new weights — the same weights at every position.', 'good');
+      }
+    });
+    player = K.player($(lab, '[data-act="play"]'), 110, function () { if (pos >= 35) return false; pos++; K.done('cnn-c-step'); update(); if (pos >= 35) return false; });
+    K.on(lab, 'step', function () { player.stop(); if (pos >= 35) pos = -1; pos++; K.done('cnn-c-step'); update(); });
+    K.on(lab, 'play', function () { player.toggle(function () { if (pos >= 35) pos = -1; }); });
+    K.seg(lab, 'kernel', function (v) { kname = v; Kr = copy(KERNELS[v]); pos = -1; player.stop(); update(); });
+    K.seg(lab, 'img', function (v) { iname = v; I = makeImg(v); pos = -1; player.stop(); update(); });
+    $(lab, '[data-reset]').addEventListener('click', function () { I = makeImg(iname); Kr = copy(KERNELS[kname]); pos = -1; player.stop(); update(); });
+    update();
+  })();
 
-_whenMathJaxReady(function() {
-  _flushMjQueue();
-  goToStep(0);
-});
+  /* ═════ Lab 2 — ReLU ═════ */
+  (function () {
+    var lab = document.getElementById('lab-relu'); if (!lab) return;
+    var Z = conv(makeImg('box'), KERNELS.vedge), relu = false, s;
+    s = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var cs = Math.floor(Math.min((w - 60) / 12, (h - 40) / 6)), x0 = (w - cs * 12 - 40) / 2, y0 = (h - cs * 6) / 2 + 8, R = Z.map(function (r) { return r.map(function (v) { return Math.max(0, v); }); });
+      cells(ctx, x0, y0, cs, Z, 'div', { nums: true, label: 'Feature map Z' });
+      cells(ctx, x0 + cs * 6 + 40, y0, cs, relu ? R : Z.map(function (r) { return r.map(function () { return 0; }); }), 'div', { nums: relu, max: 3, label: relu ? 'ReLU(Z) = max(0, Z)' : 'ReLU(Z) — switch it on' });
+      K.text(ctx, '→', x0 + cs * 6 + 20, y0 + cs * 3 + 6, K.col().muted, '18px sans-serif', 'center');
+    });
+    $(lab, '[data-in="relu"]').addEventListener('change', function (e) {
+      relu = e.target.checked; s.redraw();
+      if (relu) { K.done('cnn-r-apply'); note(lab, 'The right edge\'s −3 values became <b>0</b>. ReLU kept only positive evidence: "a dark-to-bright edge is here". (A second kernel with flipped weights would catch the other direction.)', 'good'); }
+      else note(lab, 'This is the vertical-edge feature map of the box. Red cells are negative.');
+    });
+  })();
 
-// Render step 0 immediately too (grids), so UI isn't blank while MathJax loads.
-// _mjReady is still false here, so math goes to the queue and is flushed above.
-goToStep(0);
+  /* ═════ Lab 3 — pooling ═════ */
+  (function () {
+    var lab = document.getElementById('lab-pool'); if (!lab) return;
+    var M = [[1, 0, 3, 1, 0, 2], [4, 2, 0, 1, 1, 0], [0, 1, 6, 2, 0, 1], [1, 0, 2, 5, 3, 0], [2, 1, 0, 0, 1, 4], [0, 3, 1, 2, 0, 1]];
+    var type = 'max', sel = [0, 0], s, geo;
+    function pool() { var o = zeros(3); for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) { var w = [M[2 * i][2 * j], M[2 * i][2 * j + 1], M[2 * i + 1][2 * j], M[2 * i + 1][2 * j + 1]]; o[i][j] = type === 'max' ? Math.max.apply(null, w) : (w[0] + w[1] + w[2] + w[3]) / 4; } return o; }
+    function explain() {
+      var i = sel[0], j = sel[1], w = [M[2 * i][2 * j], M[2 * i][2 * j + 1], M[2 * i + 1][2 * j], M[2 * i + 1][2 * j + 1]];
+      note(lab, (type === 'max' ? 'max(' : 'average(') + w.join(', ') + ') = <b>' + num(pool()[i][j]) + '</b>. ' + (type === 'max' ? 'Only the strongest signal survives.' : 'Average pooling blurs strong responses with weak neighbours — edges get fainter.'));
+    }
+    s = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var c = K.col(), cs = Math.floor(Math.min((w - 80) / 9, (h - 40) / 6)), x0 = (w - cs * 9 - 50) / 2, y0 = (h - cs * 6) / 2 + 8, ox = x0 + cs * 6 + 50, oy = y0 + cs * 1.5;
+      geo = { x0: x0, y0: y0, cs: cs };
+      cells(ctx, x0, y0, cs, M, 'pos', { nums: true, max: 6, label: 'Feature map (6 × 6)' });
+      cells(ctx, ox, oy, cs, pool(), 'pos', { nums: true, max: 6, label: (type === 'max' ? 'Max' : 'Average') + ' pooled (3 × 3)' });
+      ctx.strokeStyle = K.rgba(c.text, 0.5); ctx.lineWidth = 1;
+      for (var k = 0; k <= 3; k++) { ctx.beginPath(); ctx.moveTo(x0 + k * 2 * cs, y0); ctx.lineTo(x0 + k * 2 * cs, y0 + 6 * cs); ctx.moveTo(x0, y0 + k * 2 * cs); ctx.lineTo(x0 + 6 * cs, y0 + k * 2 * cs); ctx.stroke(); }
+      outline(ctx, x0 + sel[1] * 2 * cs, y0 + sel[0] * 2 * cs, cs * 2, cs * 2, c.hl, 3); outline(ctx, ox + sel[1] * cs, oy + sel[0] * cs, cs, cs, c.hl, 3);
+      K.text(ctx, '→', x0 + cs * 6 + 25, y0 + cs * 3 + 6, c.muted, '18px sans-serif', 'center');
+    });
+    $(lab, 'canvas').addEventListener('pointerdown', function (e) { var hh = hit(s.point(e), geo.x0, geo.y0, geo.cs * 2, 3); if (hh) { sel = hh; K.done('cnn-p-click'); explain(); s.redraw(); } });
+    K.seg(lab, 'type', function (v) { type = v; if (v === 'avg') K.done('cnn-p-avg'); explain(); s.redraw(); });
+  })();
+
+  /* ═════ Lab 4 — output size ═════ */
+  (function () {
+    var lab = document.getElementById('lab-size'); if (!lab) return;
+    var v = { n: 7, k: 3, p: 0, s: 1 }, sc;
+    function calc() { var span = v.n + 2 * v.p - v.k; return { span: span, out: span < 0 ? 0 : Math.floor(span / v.s) + 1, even: span >= 0 && span % v.s === 0 }; }
+    function update() {
+      ['n', 'k', 'p', 's'].forEach(function (k) { out(lab, k + 'v', v[k]); });
+      var r = calc();
+      if (r.span < 0) note(lab, 'The kernel is bigger than the padded input — no valid positions.', 'bad');
+      else {
+        var txt = '(' + v.n + ' + 2·' + v.p + ' − ' + v.k + ') ÷ ' + v.s + ' + 1 = <b>' + (r.even ? '' : '⌊') + (r.span / v.s).toFixed(r.even ? 0 : 2) + (r.even ? '' : '⌋') + ' + 1 = ' + r.out + '</b> → output ' + r.out + ' × ' + r.out + '.';
+        if (!r.even) { K.done('cnn-s-bad'); txt += ' <b>Doesn\'t fit evenly</b>: the last ' + (r.span % v.s) + ' row(s) are never covered by the kernel (shown striped).'; }
+        if (v.k === 3 && v.s === 1 && r.out === v.n) { K.done('cnn-s-same'); txt += ' <b>Same size as the input</b> — padding (K − 1) / 2 = 1 does it.'; }
+        note(lab, txt, !r.even ? 'warn' : r.out === v.n ? 'good' : '');
+      }
+      sc && sc.redraw();
+    }
+    sc = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var c = K.col(), r = calc(), N = v.n + 2 * v.p, cs = Math.floor(Math.min((w - 70) / (N + Math.max(r.out, 1)), (h - 50) / N)), x0 = 20, y0 = (h - cs * N) / 2 + 10;
+      for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
+        var pad = i < v.p || j < v.p || i >= N - v.p || j >= N - v.p;
+        var covered = r.span >= 0 && i <= Math.floor(r.span / v.s) * v.s + v.k - 1 && j <= Math.floor(r.span / v.s) * v.s + v.k - 1;
+        ctx.fillStyle = pad ? K.rgba(c.muted, 0.15) : K.rgba(c.accent, 0.22); ctx.fillRect(x0 + j * cs + 1, y0 + i * cs + 1, cs - 2, cs - 2);
+        if (!covered) { ctx.strokeStyle = K.rgba(c.bad, 0.7); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0 + j * cs + 2, y0 + i * cs + cs - 2); ctx.lineTo(x0 + j * cs + cs - 2, y0 + i * cs + 2); ctx.stroke(); }
+      }
+      if (r.span >= 0) { outline(ctx, x0, y0, cs * v.k, cs * v.k, c.hl, 3); if (r.out > 1) outline(ctx, x0 + v.s * cs, y0, cs * v.k, cs * v.k, K.rgba(c.hl, 0.5), 2); }
+      K.text(ctx, 'input ' + v.n + '×' + v.n + (v.p ? ' + padding' : ''), x0, y0 - 8, c.text2, '600 11px Inter, sans-serif');
+      var ox = x0 + N * cs + 40, oy = y0 + (N - r.out) * cs / 2;
+      for (i = 0; i < r.out; i++) for (j = 0; j < r.out; j++) { ctx.fillStyle = K.rgba(c.accent2, 0.5); ctx.fillRect(ox + j * cs + 1, oy + i * cs + 1, cs - 2, cs - 2); }
+      K.text(ctx, 'output ' + r.out + '×' + r.out, ox, oy - 8, c.text2, '600 11px Inter, sans-serif');
+    });
+    ['n', 'k', 'p', 's'].forEach(function (k) { K.slider(lab, k, function (val) { v[k] = val; update(); }); });
+    update();
+  })();
+
+  /* ═════ Lab 5 — the tiny CNN ═════ */
+  (function () {
+    var lab = document.getElementById('lab-classify'); if (!lab) return;
+    var VK = [[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], HK = [[-1, -1, -1], [2, 2, 2], [-1, -1, -1]];
+    var CLASSES = ['vertical |', 'horizontal —', 'plus +'];
+    var I = zeros(10), s, geo;
+    function run() {
+      var mapV = conv(I, VK).map(function (r) { return r.map(function (v) { return Math.max(0, v); }); });
+      var mapH = conv(I, HK).map(function (r) { return r.map(function (v) { return Math.max(0, v); }); });
+      var mV = Math.max.apply(null, [].concat.apply([], mapV)), mH = Math.max.apply(null, [].concat.apply([], mapH));
+      var scores = [mV - mH, mH - mV, 0.5 * (mV + mH) - 1];
+      var e = scores.map(function (v) { return Math.exp(v * 0.8); }), z = e.reduce(function (a, b) { return a + b; });
+      return { mapV: mapV, mapH: mapH, mV: mV, mH: mH, scores: scores, probs: e.map(function (v) { return v / z; }) };
+    }
+    function painted() { return I.reduce(function (a, r) { return a + r.reduce(function (x, y) { return x + y; }, 0); }, 0); }
+    function update() {
+      var r = run(), best = r.probs.indexOf(Math.max.apply(null, r.probs)), n = painted();
+      if (n >= 3 && r.probs[best] >= 0.7) {
+        K.done(['cnn-h-v', 'cnn-h-h', 'cnn-h-p'][best]);
+        note(lab, 'Max responses: vertical detector <b>' + r.mV + '</b>, horizontal detector <b>' + r.mH + '</b> → the dense layer scores them → <b>' + Math.round(r.probs[best] * 100) + '% ' + CLASSES[best] + '</b>.', 'good');
+      } else if (n >= 4) {
+        K.done('cnn-h-d');
+        note(lab, 'Max responses: vertical <b>' + r.mV + '</b>, horizontal <b>' + r.mH + '</b>. Neither kernel matches this shape well, so the CNN is unsure (' + Math.round(r.probs[best] * 100) + '% at best). It only knows two patterns — a trained CNN would have learned many more.', 'warn');
+      } else note(lab, 'Draw a vertical line, a horizontal line, or a plus sign.');
+      s && s.redraw();
+    }
+    s = K.canvas($(lab, 'canvas'), function (ctx, w, h) {
+      var c = K.col(), r = run(), narrow = w < 560;
+      var cs = narrow ? Math.floor(Math.min((w * 0.52) / 10, (h - 110) / 10)) : Math.floor(Math.min((w - 40) / 26, (h - 50) / 10));
+      var x0 = 14, y0 = narrow ? 56 : (h - cs * 10) / 2 + 8;
+      geo = { x0: x0, y0: y0, cs: cs, n: 10, M: I };
+      cells(ctx, x0, y0, cs, I, 'img', { label: 'Input 10 × 10' });
+      var ms = narrow ? Math.floor((cs * 10 - 50) / 16) : Math.floor(cs * 0.55), mx = x0 + cs * 10 + (narrow ? 18 : 26);
+      var hy = y0 + ms * 8 + (narrow ? 50 : 26);
+      cells(ctx, mx, y0, ms, r.mapV, 'pos', { max: 6, label: narrow ? 'Vertical' : 'Vertical detector' });
+      cells(ctx, mx, hy, ms, r.mapH, 'pos', { max: 6, label: narrow ? 'Horizontal' : 'Horizontal detector' });
+      var mf = '700 12px JetBrains Mono, monospace';
+      if (narrow) { K.text(ctx, 'max = ' + r.mV, mx, y0 + ms * 8 + 16, c.text, mf); K.text(ctx, 'max = ' + r.mH, mx, hy + ms * 8 + 16, c.text, mf); }
+      else { K.text(ctx, 'max = ' + r.mV, mx + ms * 8 + 8, y0 + ms * 4, c.text, mf); K.text(ctx, 'max = ' + r.mH, mx + ms * 8 + 8, hy + ms * 4, c.text, mf); }
+      if (narrow) {
+        var by = h - 44, gw = (w - 28 - 20) / 3;
+        r.probs.forEach(function (p, k) {
+          var bx = 14 + k * (gw + 10);
+          K.text(ctx, CLASSES[k].split(' ')[1] + ' ' + Math.round(p * 100) + '%', bx, by, c.text, '700 12px JetBrains Mono, monospace');
+          ctx.fillStyle = c.surface2; ctx.fillRect(bx, by + 8, gw, 14);
+          ctx.fillStyle = p >= 0.7 ? c.good : c.accent; ctx.fillRect(bx, by + 8, gw * p, 14);
+        });
+        return;
+      }
+      var bx = mx + ms * 8 + 90, bw = w - bx - 14;
+      K.text(ctx, 'softmax probabilities', bx, y0 - 8, c.text2, '600 11px Inter, sans-serif');
+      r.probs.forEach(function (p, k) {
+        var by = y0 + 10 + k * (cs * 3);
+        K.text(ctx, CLASSES[k], bx, by, c.text2, '600 12px Inter, sans-serif');
+        ctx.fillStyle = c.surface2; ctx.fillRect(bx, by + 8, bw, 14);
+        ctx.fillStyle = p >= 0.7 ? c.good : c.accent; ctx.fillRect(bx, by + 8, bw * p, 14);
+        K.text(ctx, Math.round(p * 100) + '%', bx + bw, by, c.text, '700 12px JetBrains Mono, monospace', 'right');
+      });
+    });
+    paintable($(lab, 'canvas'), s, function () { return geo; }, update);
+    function example(kind) {
+      I.forEach(function (row) { row.fill(0); });
+      for (var i = 1; i < 9; i++) {
+        if (kind === 'v' || kind === 'p') I[i][5] = 1;
+        if (kind === 'h' || kind === 'p') I[4][i] = 1;
+        if (kind === 'd') I[i][i] = 1;
+      }
+      update();
+    }
+    ['v', 'h', 'p', 'd'].forEach(function (k) { K.on(lab, k, function () { example(k); }); });
+    $(lab, '[data-reset]').addEventListener('click', function () { I.forEach(function (row) { row.fill(0); }); update(); });
+    update();
+  })();
+})();
