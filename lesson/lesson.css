@@ -49,8 +49,8 @@ body.lesson { overflow-x: hidden; }
 .hero-card { border-radius: 22px; padding: 1.5rem; background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(14px); box-shadow: var(--shadow-lg); }
 .hero-card h3 { font: 600 .75rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent2); margin-bottom: .9rem; }
 .outcomes { list-style: none; display: grid; gap: .7rem; }
-.outcomes li { display: grid; grid-template-columns: 22px 1fr; gap: .6rem; font-size: .93rem; line-height: 1.5; color: var(--text); }
-.outcomes li::before { content: ""; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: var(--good-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2334d399' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 10.5l3 3 6-7'/%3E%3C/svg%3E") center/14px no-repeat; }
+.outcomes li { position: relative; padding-left: 2rem; font-size: .93rem; line-height: 1.5; color: var(--text); }
+.outcomes li::before { content: ""; position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 50%; background: var(--good-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2334d399' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 10.5l3 3 6-7'/%3E%3C/svg%3E") center/14px no-repeat; }
 .prereq { margin-top: 1.2rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); font-size: .88rem; color: var(--text-secondary); line-height: 1.6; }
 .prereq b { color: var(--text); }
 
@@ -185,8 +185,8 @@ input[type=range].slider::-moz-range-thumb { width: 16px; height: 16px; border-r
 .tasks { border-top: 1px solid var(--border-light); padding: 1rem 1.2rem 1.1rem; background: linear-gradient(180deg, var(--surface2), transparent); }
 .tasks h5 { font: 600 .72rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .6rem; display: flex; justify-content: space-between; }
 .tasks ol { list-style: none; display: grid; gap: .45rem; }
-.tasks li { display: grid; grid-template-columns: 22px 1fr; gap: .6rem; align-items: start; font-size: .92rem !important; line-height: 1.5 !important; color: var(--text-secondary); }
-.tasks li::before { content: ""; width: 18px; height: 18px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--border); transition: all .35s var(--spring); }
+.tasks li { position: relative; padding-left: 1.9rem; font-size: .92rem !important; line-height: 1.5 !important; color: var(--text-secondary); }
+.tasks li::before { content: ""; position: absolute; left: 0; top: 2px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--border); transition: all .35s var(--spring); }
 .tasks li.done { color: var(--text); }
 .tasks li.done::before { border-color: var(--good); background: var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 10.5l3 3 6-7'/%3E%3C/svg%3E") center/12px no-repeat; transform: scale(1.1); }
 .tasks li.done.pop::before { animation: task-pop .5s var(--spring); }
@@ -226,6 +226,7 @@ input[type=range].slider::-moz-range-thumb { width: 16px; height: 16px; border-r
   transition: border-color .2s, background .2s, transform .3s var(--spring);
 }
 .quiz-opt:hover:not(:disabled) { border-color: var(--accent); transform: translateX(3px); }
+.quiz-opt .t { min-width: 0; }
 .quiz-opt .k { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 700 .78rem var(--font-mono); background: var(--surface2); color: var(--text-muted); }
 .quiz-opt.right { border-color: var(--good); background: var(--good-soft); }
 .quiz-opt.right .k { background: var(--good); color: #fff; }
@@ -243,8 +244,8 @@ input[type=range].slider::-moz-range-thumb { width: 16px; height: 16px; border-r
 .takeaway::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; background: var(--gradient-text); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
 .takeaway h4 { font: 600 .74rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent2); margin-bottom: .6rem; }
 .takeaway ul { list-style: none; display: grid; gap: .45rem; }
-.takeaway li { display: grid; grid-template-columns: 18px 1fr; gap: .5rem; font-size: .96rem !important; line-height: 1.6 !important; color: var(--text) !important; }
-.takeaway li::before { content: "→"; color: var(--accent); font-weight: 700; }
+.takeaway li { position: relative; padding-left: 1.5rem; font-size: .96rem !important; line-height: 1.6 !important; color: var(--text) !important; }
+.takeaway li::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 700; }
 .cheat { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .8rem; margin: 1.4rem 0; }
 .cheat-card { padding: 1rem 1.1rem; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
 .cheat-card h5 { font-size: .88rem; margin-bottom: .5rem; color: var(--text); }

@@ -155,7 +155,8 @@
   document.querySelectorAll('.quiz[data-quiz]').forEach(function (q) {
     var id = q.dataset.quiz, why = q.querySelector('.quiz-why');
     var opts = [].slice.call(q.querySelectorAll('.quiz-opt'));
-    opts.forEach(function (o, i) { o.insertAdjacentHTML('afterbegin', '<span class="k">' + String.fromCharCode(65 + i) + '</span>'); o.type = 'button'; });
+    // Wrap the option text so inline markup (bold, maths) stays in one grid cell
+    opts.forEach(function (o, i) { o.innerHTML = '<span class="k">' + String.fromCharCode(65 + i) + '</span><span class="t">' + o.innerHTML + '</span>'; o.type = 'button'; });
     function showRight(o, animate) {
       opts.forEach(function (x) { x.disabled = true; x.classList.remove('wrong'); });
       o.classList.add('right');
