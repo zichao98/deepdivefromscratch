@@ -350,3 +350,4 @@ textarea.dom-input { font: 500 .8rem/1.6 var(--font-mono); resize: vertical; }
 .flist .ic { width: 1.1rem; text-align: center; }
 .split2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
 @media (max-width: 640px) { .split2 { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .lab-stage[data-narrow-h] { height: 460px !important; } }
